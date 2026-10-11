@@ -12,7 +12,7 @@ on:
       - 'iso/prepare-apt.py'
       - 'assets/i18n/**'
       - 'src/paimenos/close_overlay.py'
-      - 'src/paimenos/menu.py'
+      - 'src/paimenos/menu*.py'
       - 'src/paimenos/lockscreen.py'
       - 'src/paimenos/timer.py'
       - 'src/paimenos/parent_ui.py'
