@@ -23,7 +23,8 @@ git ls-files -z --cached --others --exclude-standard \
     | ssh "$host" "rm -rf ~/${remote_dir} && mkdir ~/${remote_dir} && tar xzf - -C ~/${remote_dir}"
 
 echo "==> Aktiviere Code auf dem Gerät"
-quoted=$(printf ' %q' "$@")
+quoted=''
+[ "$#" -gt 0 ] && quoted=$(printf ' %q' "$@")
 if [ -n "${DEPLOY_SUDO_PASSWORD:-}" ]; then
     printf '%s\n' "$DEPLOY_SUDO_PASSWORD" \
         | ssh "$host" "cd ~/${remote_dir} && sudo -S -p '' python3 -B tools/deploy.py${quoted}"
