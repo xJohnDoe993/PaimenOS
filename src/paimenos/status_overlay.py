@@ -34,8 +34,9 @@ class StatusOverlay(QWidget):
         self.pending = None
         self.busy = False
         self.setWindowTitle(t('PaimenOS Lautstärke / Helligkeit'))
+        # Without the bypass hint Openbox keeps the focused fullscreen menu above this window.
         self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint |
-                            Qt.WindowDoesNotAcceptFocus |
+                            Qt.X11BypassWindowManagerHint | Qt.WindowDoesNotAcceptFocus |
                             Qt.WindowTransparentForInput)
         self.setAttribute(Qt.WA_ShowWithoutActivating)
         self.setAttribute(Qt.WA_TransparentForMouseEvents)
