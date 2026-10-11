@@ -3,10 +3,10 @@ from paimenos.i18n import t
 from paimenos.paths import USER_DATA_DIR
 import os
 from paimenos.screen_guard import child_access_blocked
-from PyQt5.QtCore import Qt, QRectF
+from PyQt5.QtCore import Qt, QRectF, QSize, QTimer
 from PyQt5.QtGui import QFont, QIcon, QPixmap, QColor, QPainter, QLinearGradient, QPen
 from PyQt5.QtWidgets import (
-    QVBoxLayout, QPushButton, QLabel, QToolButton
+    QVBoxLayout, QPushButton, QLabel, QSizePolicy, QToolButton
 )
 
 ICONS_DIR = str(USER_DATA_DIR / "icons")
@@ -48,6 +48,79 @@ class ArrowToolButton(ArrowPassThrough, QToolButton):
     pass
 
 
+class MarqueeLabel(QLabel):
+    """One-line title: centred when it fits, shortened with an ellipsis otherwise.
+    While scrolling is on (tile focused or hovered) the full text runs through the label."""
+    INTERVAL_MS, STEP_PX, PAUSE_TICKS = 40, 2, 25
+    COLOR = QColor('#1d2b3a')
+
+    def __init__(self, text, parent=None):
+        super().__init__(text, parent)
+        self.offset = 0
+        self.pause = self.PAUSE_TICKS
+        self.scrolling = False
+        self.timer = QTimer(self)
+        self.timer.setInterval(self.INTERVAL_MS)
+        self.timer.timeout.connect(self.advance)
+        self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+        # The menu style sheet paints every QWidget; the card behind the title must show through.
+        self.setStyleSheet("background: transparent; border: none;")
+
+    def minimumSizeHint(self):
+        return QSize(0, super().minimumSizeHint().height())
+
+    def text_width(self):
+        return self.fontMetrics().horizontalAdvance(self.text())
+
+    def overflows(self):
+        return self.text_width() > self.contentsRect().width()
+
+    def display_text(self):
+        if not self.overflows():
+            return self.text()
+        return self.fontMetrics().elidedText(self.text(), Qt.ElideRight, self.contentsRect().width())
+
+    def set_scrolling(self, on):
+        if on == self.scrolling:
+            return
+        self.scrolling = on
+        self.offset, self.pause = 0, self.PAUSE_TICKS
+        if on and self.overflows():
+            self.timer.start()
+        else:
+            self.timer.stop()
+        self.update()
+
+    def advance(self):
+        if not self.overflows():
+            self.timer.stop()
+            return
+        if self.pause > 0:
+            self.pause -= 1
+            if self.pause == 0 and self.offset > 0:  # pause at the end is over: start again
+                self.offset, self.pause = 0, self.PAUSE_TICKS
+        else:
+            last = self.text_width() - self.contentsRect().width()
+            self.offset = min(last, self.offset + self.STEP_PX)
+            if self.offset == last:
+                self.pause = self.PAUSE_TICKS
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setFont(self.font())
+        painter.setPen(self.COLOR)
+        rect = self.contentsRect()
+        if not self.overflows():
+            painter.drawText(rect, Qt.AlignCenter, self.text())
+        elif self.scrolling:
+            painter.setClipRect(rect)
+            painter.drawText(rect.adjusted(-self.offset, 0, self.text_width(), 0),
+                             Qt.AlignLeft | Qt.AlignVCenter, self.text())
+        else:
+            painter.drawText(rect, Qt.AlignLeft | Qt.AlignVCenter, self.display_text())
+
+
 class PaimenOSTile(ArrowPassThrough, QPushButton):
     # Fixed size including room for the painted shadow, lift and focus ring around the card.
     WIDTH, HEIGHT, RADIUS = 232, 190, 30
@@ -76,15 +149,29 @@ class PaimenOSTile(ArrowPassThrough, QPushButton):
         if not pixmap.isNull():
             self.icon_label.setPixmap(pixmap.scaled(90, 90, Qt.KeepAspectRatio, Qt.SmoothTransformation))
 
-        self.title_label = QLabel(item.get("title", ""), self)
+        self.title_label = MarqueeLabel(item.get("title", ""), self)
         self.title_label.setFont(QFont("DejaVu Sans", 15, QFont.Bold))
-        self.title_label.setAlignment(Qt.AlignCenter)
-        self.title_label.setStyleSheet("color: #1d2b3a; background: transparent; border: none;")
         self.title_label.setAttribute(Qt.WA_TransparentForMouseEvents)
 
         layout.addWidget(self.icon_label, 1)
         layout.addWidget(self.title_label, 0)
         self.setStyleSheet("PaimenOSTile { background: transparent; border: none; }")
+
+    def focusInEvent(self, event):
+        super().focusInEvent(event)
+        self.title_label.set_scrolling(True)
+
+    def focusOutEvent(self, event):
+        super().focusOutEvent(event)
+        self.title_label.set_scrolling(self.underMouse())
+
+    def enterEvent(self, event):
+        super().enterEvent(event)
+        self.title_label.set_scrolling(True)
+
+    def leaveEvent(self, event):
+        super().leaveEvent(event)
+        self.title_label.set_scrolling(self.hasFocus())
 
     def paintEvent(self, event):
         # Painted instead of QGraphicsDropShadowEffect: cheap enough for low-end devices.
