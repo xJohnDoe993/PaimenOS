@@ -5,7 +5,10 @@ import os
 import signal
 import sys
 from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtGui import QColor, QLinearGradient, QPainter
 from PyQt5.QtWidgets import QApplication, QPushButton, QWidget
+from paimenos import theme
+from paimenos.state import read_settings
 from paimenos.webapp import BAR_HEIGHT, MENU_WIDTH
 from paimenos.fullscreen import FullscreenTracker
 from paimenos.screen_guard import child_access_blocked
@@ -25,8 +28,8 @@ class CloseButtonOverlay(QWidget):
             pass
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool |
                             Qt.WindowDoesNotAcceptFocus)
-        self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAttribute(Qt.WA_ShowWithoutActivating)
+        self.bar_top, self.bar_bottom = (QColor(c) for c in theme.gradient(None))
         self.button = QPushButton(t('⌂ Zum Menü'), self)
         self.button.setFocusPolicy(Qt.NoFocus)
         self.button.setAccessibleName(t('Webapp schließen und zum Kinder-Menü zurückkehren'))
@@ -40,11 +43,34 @@ class CloseButtonOverlay(QWidget):
         QPushButton:disabled {background:rgba(255,255,255,0.35);color:rgba(29,43,58,0.55);}''')
         self.button.setCursor(Qt.PointingHandCursor)
         self.button.clicked.connect(self.close_target)
+        self.load_colors()
         self.place_button()
         QApplication.primaryScreen().geometryChanged.connect(self.place_button)
         self.monitor = QTimer(self)
         self.monitor.timeout.connect(self.update_overlay)
         self.monitor.start(250)
+
+    def load_colors(self):
+        try:
+            color = read_settings().get('bg_color')
+        except (OSError, ValueError):
+            color = None
+        self.bar_top, self.bar_bottom = (QColor(c) for c in theme.gradient(color))
+        self.update()
+
+    def paintEvent(self, event):
+        # Same gradient as the Firefox bar behind this window; without an X11 compositor a
+        # translucent window would show black corners around the rounded button.
+        bar = BAR_HEIGHT
+        top, bottom = self.bar_top, self.bar_bottom
+        def at(y):
+            f = y / bar
+            return QColor(*(round(a + (b - a) * f) for a, b in
+                            zip((top.red(), top.green(), top.blue()), (bottom.red(), bottom.green(), bottom.blue()))))
+        gradient = QLinearGradient(0, 0, 0, self.height())
+        gradient.setColorAt(0, at(10))
+        gradient.setColorAt(1, at(bar - 10))
+        QPainter(self).fillRect(self.rect(), gradient)
 
     def place_button(self, *args):
         screen = QApplication.primaryScreen().geometry()
@@ -100,6 +126,7 @@ class CloseButtonOverlay(QWidget):
         elif not self.isVisible():
             # WA_ShowWithoutActivating bleibt gesetzt: das Video verliert
             # beim Verlassen des Vollbilds weder Fokus noch Tastaturbedienung.
+            self.load_colors()
             self.place_button()
             self.show()
 

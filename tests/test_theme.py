@@ -79,6 +79,20 @@ class OverlayDesignTests(unittest.TestCase):
             overlay.load_accent()
         self.assertEqual(overlay.accent.name(), theme.DEFAULT_COLOR.lower())
 
+    def test_menu_button_corners_show_the_bar_gradient_not_black(self):
+        import os
+        from paimenos import close_overlay
+        with patch.object(close_overlay, 'FullscreenTracker'), \
+                patch.object(close_overlay.os, 'pidfd_open', side_effect=OSError), \
+                patch.object(close_overlay, 'read_settings', return_value={'bg_color': '#007AFF'}):
+            overlay = close_overlay.CloseButtonOverlay(os.getpid())
+        self.addCleanup(overlay.close)
+        self.addCleanup(overlay.monitor.stop)
+        image = overlay.grab().toImage()
+        corner = image.pixelColor(0, 0)
+        self.assertGreater(corner.blue(), 180)
+        self.assertGreater(corner.blue(), corner.red() + 60)
+
 
 if __name__ == '__main__':
     unittest.main()

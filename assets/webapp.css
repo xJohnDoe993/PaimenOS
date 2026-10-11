@@ -69,7 +69,7 @@
   background: rgba(255, 255, 255, .5) !important;
   color: #1d2b3a !important;
 }
-#back-button[disabled], #forward-button[disabled] { opacity: .38 !important; }
+#back-button[disabled], #forward-button[disabled] { opacity: .5 !important; }
 #back-button:focus-visible, #forward-button:focus-visible {
   outline: 3px solid #ffe66d !important;
   outline-offset: 2px !important;
