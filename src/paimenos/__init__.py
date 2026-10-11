@@ -1,2 +1,2 @@
 """PaimenOS: Kindersitzung und Elternverwaltung."""
-__version__ = "0.68.0"
+__version__ = "0.69.0"
