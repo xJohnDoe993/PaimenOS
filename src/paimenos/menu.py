@@ -149,7 +149,24 @@ def save_json(path, data):
         QMessageBox.critical(None, t('Fehler'), t('Speichern fehlgeschlagen: {value0}', value0=exc))
         return False
 
-class PaimenOSTile(QPushButton):
+ARROW_KEYS = {Qt.Key_Left: 'left', Qt.Key_Right: 'right', Qt.Key_Up: 'up', Qt.Key_Down: 'down'}
+
+
+class ArrowPassThrough:
+    """QAbstractButton treats arrows as plain focus next/previous; hand them to the window instead."""
+
+    def keyPressEvent(self, event):
+        if event.key() in ARROW_KEYS:
+            event.ignore()
+            return
+        super().keyPressEvent(event)
+
+
+class ToolbarButton(ArrowPassThrough, QPushButton):
+    pass
+
+
+class PaimenOSTile(ArrowPassThrough, QPushButton):
     # Fixed size including room for the painted shadow, lift and focus ring around the card.
     WIDTH, HEIGHT, RADIUS = 232, 190, 30
     LIGHT = False
@@ -869,14 +886,14 @@ class PaimenOSMenu(QWidget):
         top_layout.addWidget(self.timer_info_label, 0, Qt.AlignVCenter)
         top_layout.addSpacing(6)
 
-        color_btn = QPushButton(t('🎨 Farbe'))
+        color_btn = ToolbarButton(t('🎨 Farbe'))
         color_btn.setObjectName("colorBtn")
         color_btn.setMinimumSize(120, 50)
         color_btn.setCursor(Qt.PointingHandCursor)
         color_btn.clicked.connect(self.open_color_picker)
         top_layout.addWidget(color_btn)
 
-        parent_btn = QPushButton(t('🔒 Eltern-Bereich'))
+        parent_btn = ToolbarButton(t('🔒 Eltern-Bereich'))
         parent_btn.setObjectName("parentBtn")
         parent_btn.setMinimumSize(180, 50)
         parent_btn.setCursor(Qt.PointingHandCursor)
@@ -1153,6 +1170,10 @@ class PaimenOSMenu(QWidget):
         if action in ('category_prev', 'category_next'):
             self.cycle_category(-1 if action == 'category_prev' else 1)
             return
+        self.navigate(action)
+
+    def navigate(self, action):
+        """Shared by keyboard and controller: up/down change the row, left/right the column."""
         focused = self.focusWidget()
         if action == 'toolbar':
             self.toolbar_buttons[0].setFocus(Qt.OtherFocusReason)
@@ -1196,40 +1217,30 @@ class PaimenOSMenu(QWidget):
             super().keyPressEvent(event)
             return
 
-        if not self.app_buttons:
-            super().keyPressEvent(event)
+        if key in ARROW_KEYS:
+            self.navigate(ARROW_KEYS[key])
+            event.accept()
             return
 
         focused = self.focusWidget()
+        if focused in self.toolbar_buttons or not self.app_buttons:
+            super().keyPressEvent(event)
+            return
+
         try:
             index = self.app_buttons.index(focused)
         except ValueError:
             index = 0
 
-        target = index
-        if key == Qt.Key_Left:
-            target = max(0, index - 1)
-        elif key == Qt.Key_Right:
-            target = min(len(self.app_buttons) - 1, index + 1)
-        elif key == Qt.Key_Up:
-            target = max(0, index - self.grid_columns)
-        elif key == Qt.Key_Down:
-            candidate = index + self.grid_columns
-            target = min(len(self.app_buttons) - 1, candidate)
-        elif key in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Space):
+        if key in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Space):
             self.app_buttons[index].click()
-            return
         elif key == Qt.Key_Home:
-            target = 0
+            self.focus_tile(0)
         elif key == Qt.Key_End:
-            target = len(self.app_buttons) - 1
+            self.focus_tile(len(self.app_buttons) - 1)
         else:
             super().keyPressEvent(event)
             return
-
-        if target != index:
-            self.app_buttons[target].setFocus(Qt.OtherFocusReason)
-            self.app_scroll.ensureWidgetVisible(self.app_buttons[target], 30, 30)
         event.accept()
 
     def open_parent_menu(self):
