@@ -9,6 +9,7 @@
         "src/paimenos/i18n.py",
         "src/paimenos/paths.py",
         "src/paimenos/state.py",
+        "src/paimenos/theme.py",
         "src/paimenos/diagnostics.py",
         "src/paimenos/images.py",
         "src/paimenos/media_files.py",
