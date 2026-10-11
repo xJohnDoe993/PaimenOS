@@ -153,11 +153,16 @@ ARROW_KEYS = {Qt.Key_Left: 'left', Qt.Key_Right: 'right', Qt.Key_Up: 'up', Qt.Ke
 
 
 class ArrowPassThrough:
-    """QAbstractButton treats arrows as plain focus next/previous; hand them to the window instead."""
+    """QAbstractButton treats arrows as plain focus next/previous and the surrounding
+    QScrollArea would scroll; route them to the window's grid navigation instead."""
 
     def keyPressEvent(self, event):
-        if event.key() in ARROW_KEYS:
-            event.ignore()
+        action = ARROW_KEYS.get(event.key())
+        window = self.window()
+        if action and hasattr(window, 'navigate'):
+            if not child_access_blocked():
+                window.navigate(action)
+            event.accept()
             return
         super().keyPressEvent(event)
 
@@ -1139,6 +1144,14 @@ class PaimenOSMenu(QWidget):
         if self.category_bar.isVisible() and self.visible_categories:
             index = self.visible_categories.index(self.selected_category)
             self.select_category(self.visible_categories[(index + direction) % len(self.visible_categories)])
+
+    def focusNextPrevChild(self, forward):
+        # Tab / Shift+Tab switch the category tab instead of walking the focus chain.
+        if self.category_bar.isVisible() and QApplication.activeModalWidget() is None:
+            if not child_access_blocked():
+                self.cycle_category(1 if forward else -1)
+            return True
+        return super().focusNextPrevChild(forward)
 
     def focus_tile(self, index):
         if self.app_buttons:
