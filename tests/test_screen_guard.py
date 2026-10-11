@@ -434,6 +434,8 @@ class WidgetGuardTests(GuardFixture, unittest.TestCase):
         overlay = status_overlay.StatusOverlay(reader); self.windows.append(overlay)
         overlay.updated('volume', (50, False))
         self.assertTrue(overlay.isVisible())
+        # Managed windows end up below the focused fullscreen menu under Openbox.
+        self.assertTrue(overlay.windowFlags() & Qt.X11BypassWindowManagerHint)
         lease = screen_guard.ViewGuard()
         try:
             overlay.check_guard()

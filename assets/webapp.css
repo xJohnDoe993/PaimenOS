@@ -1,10 +1,10 @@
 /* Native Firefox-Navigation, keine Einblendung über Webseiten. */
 #navigator-toolbox {
-  background: #172234 !important;
+  background: linear-gradient(180deg, var(--paimenos-bar-top, #ffac24), var(--paimenos-bar-bottom, #e89100)) !important;
   border: 0 !important;
   margin-top: 0 !important;
-  --toolbarbutton-hover-background: #405878;
-  --toolbarbutton-active-background: #506989;
+  --toolbarbutton-hover-background: rgba(255, 255, 255, .5);
+  --toolbarbutton-active-background: rgba(255, 255, 255, .65);
 }
 /* Nur Videos im Vollbild; F11 darf Zurück/Weiter nicht verschwinden lassen. */
 :root[inDOMFullscreen] #navigator-toolbox {
@@ -19,11 +19,11 @@
   height: 64px !important;
   min-height: 64px !important;
   max-height: 64px !important;
-  padding: 0 182px 0 10px !important;
-  background: #172234 !important;
+  padding: 0 182px 0 12px !important;
+  background: transparent !important;
   border: 0 !important;
   box-shadow: none !important;
-  color: #f5f7fb !important;
+  color: #fff !important;
 }
 #nav-bar-customization-target {
   display: flex !important;
@@ -45,10 +45,10 @@
   height: 44px !important;
   margin: 0 !important;
   padding: 0 10px !important;
-  border: 1px solid #597292 !important;
-  border-radius: 10px !important;
-  background: #304562 !important;
-  color: #f5f7fb !important;
+  border: 2px solid rgba(255, 255, 255, .8) !important;
+  border-radius: 22px !important;
+  background: rgba(255, 255, 255, .3) !important;
+  color: #fff !important;
   font: bold 18px "DejaVu Sans", sans-serif !important;
   -moz-context-properties: fill !important;
   fill: currentColor !important;
@@ -66,11 +66,12 @@
   background: transparent !important;
 }
 #back-button:not([disabled]):hover, #forward-button:not([disabled]):hover {
-  background: #405878 !important;
+  background: rgba(255, 255, 255, .5) !important;
+  color: #1d2b3a !important;
 }
-#back-button[disabled], #forward-button[disabled] { opacity: .38 !important; }
+#back-button[disabled], #forward-button[disabled] { opacity: .5 !important; }
 #back-button:focus-visible, #forward-button:focus-visible {
-  outline: 3px solid #ffb347 !important;
+  outline: 3px solid #ffe66d !important;
   outline-offset: 2px !important;
 }
 @media (max-width: 620px) {

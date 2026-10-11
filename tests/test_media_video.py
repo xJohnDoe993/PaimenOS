@@ -112,10 +112,11 @@ class VideoWidgetTests(unittest.TestCase):
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
         try:
-            from paimenos import menu
+            from paimenos import menu, menu_camera
         except ImportError as exc:
             raise unittest.SkipTest('Camera widget tests need menu dependencies: ' + str(exc))
         cls.menu = menu
+        cls.camera = menu_camera
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(dir=ROOT.parent)
@@ -125,9 +126,9 @@ class VideoWidgetTests(unittest.TestCase):
         self.photo = str(self.root / 'photo.jpg'); Path(self.photo).touch()
         self.patches = [patch.object(video, 'load_backend', return_value=(FakePlayer, FakeContent, QWidget)),
                         patch.object(video, 'log_event'),
-                        patch.object(self.menu, 'read_settings', return_value={'bg_color': '#FF9F00'}),
-                        patch.object(self.menu, 'media_roots', return_value=[]),
-                        patch.object(self.menu, 'submit_task')]
+                        patch.object(self.camera, 'read_settings', return_value={'bg_color': '#FF9F00'}),
+                        patch.object(self.camera, 'media_roots', return_value=[]),
+                        patch.object(self.camera, 'submit_task')]
         for item in self.patches: item.start()
         self.browser = self.menu.CameraBrowser()
         self.viewer = self.browser.video_viewer
@@ -378,10 +379,10 @@ class VideoWidgetTests(unittest.TestCase):
             self.assertFalse(self.viewer.active)
             self.assertFalse(self.viewer.video_fullscreen)
             return subprocess.CompletedProcess(command, 0, stdout='', stderr='')
-        with patch.object(self.menu, 'media_roots', return_value=['/media/kids/camera']), \
-                patch.object(self.menu, 'STATE_DIR', self.root), \
-                patch.object(self.menu.subprocess, 'check_output', return_value='/dev/test1\n'), \
-                patch.object(self.menu.subprocess, 'run', side_effect=unmount):
+        with patch.object(self.camera, 'media_roots', return_value=['/media/kids/camera']), \
+                patch.object(self.camera, 'STATE_DIR', self.root), \
+                patch.object(self.camera.subprocess, 'check_output', return_value='/dev/test1\n'), \
+                patch.object(self.camera.subprocess, 'run', side_effect=unmount):
             self.browser.eject_media()
 
     def test_escape_returns_to_overview_then_closes(self):

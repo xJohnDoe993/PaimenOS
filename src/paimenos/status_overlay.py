@@ -6,10 +6,12 @@ import os
 import socket
 import sys
 from PyQt5.QtCore import Qt, QTimer, QSocketNotifier, QThread, QObject, pyqtSignal, pyqtSlot, QRectF
-from PyQt5.QtGui import QPainter, QColor, QFont, QPen
+from PyQt5.QtGui import QPainter, QColor, QFont, QPen, QPainterPath, QLinearGradient, QRegion
 from PyQt5.QtWidgets import QApplication, QWidget
 from paimenos.osd_state import KINDS, read_level, socket_folder
 from paimenos.screen_guard import child_access_blocked
+from paimenos.state import read_settings
+from paimenos import theme
 
 class LevelReader(QObject):
     finished = pyqtSignal(str, object)
@@ -33,15 +35,18 @@ class StatusOverlay(QWidget):
         self.muted = False
         self.pending = None
         self.busy = False
+        self.accent = QColor(theme.DEFAULT_COLOR)
         self.setWindowTitle(t('PaimenOS Lautstärke / Helligkeit'))
+        # Without the bypass hint Openbox keeps the focused fullscreen menu above this window.
         self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint |
-                            Qt.WindowDoesNotAcceptFocus |
+                            Qt.X11BypassWindowManagerHint | Qt.WindowDoesNotAcceptFocus |
                             Qt.WindowTransparentForInput)
         self.setAttribute(Qt.WA_ShowWithoutActivating)
         self.setAttribute(Qt.WA_TransparentForMouseEvents)
         self.setFocusPolicy(Qt.NoFocus)
         # Deckende Fläche bleibt auch ohne X11-Compositor gut lesbar.
         self.setFixedSize(390, 110)
+        self.apply_shape()
         self.dismiss = QTimer(self)
         self.dismiss.setSingleShot(True)
         self.dismiss.timeout.connect(self.hide)
@@ -60,6 +65,21 @@ class StatusOverlay(QWidget):
         self.guard_timer = QTimer(self)
         self.guard_timer.timeout.connect(self.check_guard)
         self.guard_timer.start(250)
+
+    RADIUS = 26
+
+    def apply_shape(self):
+        # A mask keeps the rounded corners clean without an X11 compositor.
+        path = QPainterPath()
+        path.addRoundedRect(QRectF(self.rect()), self.RADIUS, self.RADIUS)
+        self.setMask(QRegion(path.toFillPolygon().toPolygon()))
+
+    def load_accent(self):
+        try:
+            color = read_settings().get('bg_color')
+        except (OSError, ValueError):
+            color = None
+        self.accent = QColor(theme.normalize(color))
 
     def check_guard(self):
         if self.isVisible() and child_access_blocked():
@@ -97,6 +117,7 @@ class StatusOverlay(QWidget):
             self.level, self.muted = result
             self.setAccessibleName((t('Lautstärke') if kind == 'volume' else t('Helligkeit')) +
                                    (t(' stumm, ') if self.muted else ' ') + str(self.level) + t(' Prozent'))
+            self.load_accent()
             screen = QApplication.primaryScreen().geometry()
             self.move(screen.x() + (screen.width() - self.width()) // 2,
                       screen.y() + screen.height() - self.height() - 60)
@@ -110,43 +131,52 @@ class StatusOverlay(QWidget):
     def paintEvent(self, event):
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
-        p.fillRect(self.rect(), QColor('#172335'))
-        p.setPen(QPen(QColor('#41536d'), 2))
-        p.drawRect(self.rect().adjusted(1, 1, -2, -2))
-        p.setPen(QColor('#ffffff'))
+        accent = self.accent
+        text = QColor(theme.TEXT_COLOR)
+        # White card like the menu tiles, framed in the chosen colour.
+        card = QLinearGradient(0, 0, 0, self.height())
+        card.setColorAt(0, QColor('#ffffff'))
+        card.setColorAt(1, QColor('#f1f4fa'))
+        p.setPen(Qt.NoPen)
+        p.setBrush(accent)
+        p.drawRoundedRect(QRectF(self.rect()), self.RADIUS, self.RADIUS)
+        p.setBrush(card)
+        p.drawRoundedRect(QRectF(self.rect()).adjusted(4, 4, -4, -4), self.RADIUS - 4, self.RADIUS - 4)
+        p.setPen(text)
         p.setFont(QFont('DejaVu Sans', 15, QFont.Bold))
         title = t('Helligkeit') if self.kind == 'brightness' else t('Lautstärke')
-        p.drawText(QRectF(70, 15, 205, 30), Qt.AlignVCenter | Qt.AlignLeft, title)
-        p.setPen(QColor('#ffb347'))
-        p.drawText(QRectF(275, 15, 90, 30), Qt.AlignVCenter | Qt.AlignRight, str(self.level) + ' %')
+        p.drawText(QRectF(80, 17, 195, 30), Qt.AlignVCenter | Qt.AlignLeft, title)
+        p.setPen(accent.darker(120))
+        p.drawText(QRectF(270, 17, 95, 30), Qt.AlignVCenter | Qt.AlignRight, str(self.level) + ' %')
         # Symbole als Vektoren, unabhängig von installierten Emoji-Schriften.
-        p.setPen(QPen(QColor('#ffb347'), 3, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+        icon_pen = QPen(accent.darker(115), 3, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
+        p.setPen(icon_pen)
         if self.kind == 'brightness':
             import math
-            p.drawEllipse(QRectF(29, 23, 18, 18))
+            p.drawEllipse(QRectF(33, 26, 18, 18))
             for angle in range(0, 360, 45):
                 a = math.radians(angle)
-                p.drawLine(int(38 + 14 * math.cos(a)), int(32 + 14 * math.sin(a)),
-                           int(38 + 20 * math.cos(a)), int(32 + 20 * math.sin(a)))
+                p.drawLine(int(42 + 14 * math.cos(a)), int(35 + 14 * math.sin(a)),
+                           int(42 + 20 * math.cos(a)), int(35 + 20 * math.sin(a)))
         else:
-            p.drawLine(23, 25, 30, 25); p.drawLine(30, 25, 39, 18)
-            p.drawLine(39, 18, 39, 46); p.drawLine(39, 46, 30, 39)
-            p.drawLine(30, 39, 23, 39); p.drawLine(23, 39, 23, 25)
+            p.drawLine(27, 28, 34, 28); p.drawLine(34, 28, 43, 21)
+            p.drawLine(43, 21, 43, 49); p.drawLine(43, 49, 34, 42)
+            p.drawLine(34, 42, 27, 42); p.drawLine(27, 42, 27, 28)
             if self.muted:
-                p.drawLine(47, 25, 58, 39); p.drawLine(47, 39, 58, 25)
+                p.drawLine(51, 28, 62, 42); p.drawLine(51, 42, 62, 28)
             else:
-                p.drawArc(QRectF(37, 20, 19, 24), -65 * 16, 130 * 16)
+                p.drawArc(QRectF(41, 23, 19, 24), -65 * 16, 130 * 16)
         p.setPen(Qt.NoPen)
-        p.setBrush(QColor('#34445b'))
-        p.drawRoundedRect(QRectF(24, 61, 342, 15), 7, 7)
+        p.setBrush(QColor('#dde3ee'))
+        p.drawRoundedRect(QRectF(28, 62, 334, 16), 8, 8)
         fraction = 0 if self.muted else self.level / 100
         if fraction > 0:
-            p.setBrush(QColor('#ffb347'))
-            p.drawRoundedRect(QRectF(24, 61, 342 * fraction, 15), 7, 7)
-        p.setPen(QColor('#b4c0d1'))
+            p.setBrush(accent)
+            p.drawRoundedRect(QRectF(28, 62, max(16.0, 334 * fraction), 16), 8, 8)
+        p.setPen(QColor('#6b7a90'))
         p.setFont(QFont('DejaVu Sans', 9))
-        p.drawText(QRectF(24, 82, 342, 20), Qt.AlignLeft, t('Stumm') if self.muted else '0 %' )
-        p.drawText(QRectF(24, 82, 342, 20), Qt.AlignRight, '100 %')
+        p.drawText(QRectF(28, 82, 334, 18), Qt.AlignLeft, t('Stumm') if self.muted else '0 %')
+        p.drawText(QRectF(28, 82, 334, 18), Qt.AlignRight, '100 %')
 
     def shutdown(self):
         self.guard_timer.stop()
