@@ -32,12 +32,12 @@ class CloseButtonOverlay(QWidget):
         self.button.setAccessibleName(t('Webapp schließen und zum Kinder-Menü zurückkehren'))
         self.button.setToolTip(t('Zurück zu deinen Apps und Spielen'))
         self.button.setStyleSheet('''QPushButton {
-            background:#ffb347;color:#172234;font-family:"DejaVu Sans";
-            font-size:18px;font-weight:bold;border-radius:10px;
-            border:1px solid #ffd497;
-        } QPushButton:hover {background:#ffc477;}
-        QPushButton:pressed {background:#ed9a30;}
-        QPushButton:disabled {background:#304562;color:#b4c0d1;}''')
+            background:#ffffff;color:#1d2b3a;font-family:"DejaVu Sans";
+            font-size:18px;font-weight:bold;border-radius:22px;
+            border:2px solid rgba(255,255,255,0.8);
+        } QPushButton:hover {background:#fff3d1;}
+        QPushButton:pressed {background:#e6ebf4;}
+        QPushButton:disabled {background:rgba(255,255,255,0.35);color:rgba(29,43,58,0.55);}''')
         self.button.setCursor(Qt.PointingHandCursor)
         self.button.clicked.connect(self.close_target)
         self.place_button()

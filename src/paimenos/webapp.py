@@ -3,7 +3,8 @@ from paimenos.i18n import t, browser_locale
 import json
 import os
 from paimenos.paths import ASSETS_DIR
-from paimenos import hardware_profile
+from paimenos import hardware_profile, theme
+from paimenos.state import read_settings
 import tempfile
 
 BAR_HEIGHT = 64
@@ -93,8 +94,14 @@ def prepare_profile(profile_dir, template):
     style = read_text(str(ASSETS_DIR / 'webapp.css'))
     if not style:
         raise OSError(t('Die Webapp-Navigationsleiste fehlt. Bitte die gemeinsame Code-Komponente aktualisieren.'))
+    try:
+        color = read_settings().get('bg_color')
+    except (OSError, ValueError):
+        color = None
+    top, bottom = theme.gradient(color)
     style = (':root { --paimenos-back-label: ' + json.dumps(t('Zurück'), ensure_ascii=False)
-             + '; --paimenos-forward-label: ' + json.dumps(t('Weiter'), ensure_ascii=False) + '; }\n' + style)
+             + '; --paimenos-forward-label: ' + json.dumps(t('Weiter'), ensure_ascii=False)
+             + '; --paimenos-bar-top: ' + top + '; --paimenos-bar-bottom: ' + bottom + '; }\n' + style)
     write_text(os.path.join(profile_dir, 'chrome', 'paimenos-webapp.css'), style)
 
 
