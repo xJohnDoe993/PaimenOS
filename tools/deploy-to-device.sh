@@ -26,7 +26,7 @@ echo "==> Aktiviere Code auf dem Gerät"
 quoted=$(printf ' %q' "$@")
 if [ -n "${DEPLOY_SUDO_PASSWORD:-}" ]; then
     printf '%s\n' "$DEPLOY_SUDO_PASSWORD" \
-        | ssh "$host" "cd ~/${remote_dir} && sudo -S -p '' python3 tools/deploy.py${quoted}"
+        | ssh "$host" "cd ~/${remote_dir} && sudo -S -p '' python3 -B tools/deploy.py${quoted}"
 else
-    ssh -t "$host" "cd ~/${remote_dir} && sudo python3 tools/deploy.py${quoted}"
+    ssh -t "$host" "cd ~/${remote_dir} && sudo python3 -B tools/deploy.py${quoted}"
 fi
