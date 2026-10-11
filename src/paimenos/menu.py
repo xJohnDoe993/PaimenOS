@@ -22,7 +22,7 @@ from paimenos.network_status import NetworkStatus
 from paimenos import hardware_profile
 from PyQt5 import sip
 from paimenos.menu_support import find_program, get_battery_status
-from paimenos.menu_tiles import ARROW_KEYS, COLOR_PALETTE, ToolbarButton, PaimenOSTile
+from paimenos.menu_tiles import ARROW_KEYS, COLOR_PALETTE, ArrowButton, PaimenOSTile
 from paimenos.menu_camera import CameraBrowser, has_media_attached
 from PyQt5.QtCore import QLocale, Qt, QTimer, QTime, QDate, QSize, QPointF
 from PyQt5.QtGui import QFont, QIcon, QColor, QPainter
@@ -92,7 +92,7 @@ class ColorPickerDialog(QDialog):
         self.color_buttons = []
 
         for i, (hex_code, name) in enumerate(COLOR_PALETTE):
-            btn = QPushButton(name, self)
+            btn = ArrowButton(name, self)
             btn.setMinimumSize(85, 60)
             btn.setCursor(Qt.PointingHandCursor)
             
@@ -113,6 +113,9 @@ class ColorPickerDialog(QDialog):
 
         layout.addLayout(grid)
         self.color_buttons[0].setFocus(Qt.OtherFocusReason)
+
+    def navigate(self, action):
+        self.controller_action(action)
 
     def controller_action(self, action):
         if action == 'back':
@@ -207,14 +210,14 @@ class PaimenOSMenu(QWidget):
         top_layout.addWidget(self.timer_info_label, 0, Qt.AlignVCenter)
         top_layout.addSpacing(6)
 
-        color_btn = ToolbarButton(t('🎨 Farbe'))
+        color_btn = ArrowButton(t('🎨 Farbe'))
         color_btn.setObjectName("colorBtn")
         color_btn.setMinimumSize(120, 50)
         color_btn.setCursor(Qt.PointingHandCursor)
         color_btn.clicked.connect(self.open_color_picker)
         top_layout.addWidget(color_btn)
 
-        parent_btn = ToolbarButton(t('🔒 Eltern-Bereich'))
+        parent_btn = ArrowButton(t('🔒 Eltern-Bereich'))
         parent_btn.setObjectName("parentBtn")
         parent_btn.setMinimumSize(180, 50)
         parent_btn.setCursor(Qt.PointingHandCursor)

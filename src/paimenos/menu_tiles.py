@@ -6,7 +6,7 @@ from paimenos.screen_guard import child_access_blocked
 from PyQt5.QtCore import Qt, QRectF
 from PyQt5.QtGui import QFont, QIcon, QPixmap, QColor, QPainter, QLinearGradient, QPen
 from PyQt5.QtWidgets import (
-    QVBoxLayout, QPushButton, QLabel
+    QVBoxLayout, QPushButton, QLabel, QToolButton
 )
 
 ICONS_DIR = str(USER_DATA_DIR / "icons")
@@ -40,7 +40,11 @@ class ArrowPassThrough:
         super().keyPressEvent(event)
 
 
-class ToolbarButton(ArrowPassThrough, QPushButton):
+class ArrowButton(ArrowPassThrough, QPushButton):
+    pass
+
+
+class ArrowToolButton(ArrowPassThrough, QToolButton):
     pass
 
 

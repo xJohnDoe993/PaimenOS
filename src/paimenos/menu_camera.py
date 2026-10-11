@@ -22,6 +22,7 @@ from PyQt5.QtWidgets import (
     QScrollArea, QStackedWidget, QShortcut, QToolButton
 )
 from paimenos.menu_support import find_program
+from paimenos.menu_tiles import ARROW_KEYS, ArrowButton, ArrowToolButton
 
 def media_roots():
     roots = []
@@ -242,6 +243,7 @@ class CameraBrowser(QDialog):
         self.overview = QWidget(self)
         root = QVBoxLayout(self.overview)
         header = QHBoxLayout()
+        self.header_buttons = []
         title = QLabel(t('📷 Bilder und Videos · SD-Karte / USB'), self)
         title.setFont(QFont("DejaVu Sans", 22, QFont.Bold))
         root.addWidget(title)
@@ -249,10 +251,11 @@ class CameraBrowser(QDialog):
         for text, callback in ((t('Aktualisieren'), self.reload_images),
                                (t('Medium auswerfen'), self.eject_media),
                                (t('Hauptmenü'), self.reject)):
-            button = QPushButton(text, self)
+            button = ArrowButton(text, self)
             button.setAutoDefault(False)
             button.clicked.connect(callback)
             header.addWidget(button)
+            self.header_buttons.append(button)
         root.addLayout(header)
         self.info = QLabel(self)
         root.addWidget(self.info)
@@ -271,6 +274,7 @@ class CameraBrowser(QDialog):
         self.images = []
         self.last_path = None
         self.page = 0
+        self.columns = 1
         self.generation = 0
         self.cancelled = threading.Event()
         self.task_signals = TaskSignals(self)
@@ -280,8 +284,8 @@ class CameraBrowser(QDialog):
         self.thumbnail_running = 0
         self.scanning = False
         pages = QHBoxLayout()
-        self.page_previous = QPushButton(t('← Seite'), self)
-        self.page_next = QPushButton(t('Seite →'), self)
+        self.page_previous = ArrowButton(t('← Seite'), self)
+        self.page_next = ArrowButton(t('Seite →'), self)
         self.page_previous.clicked.connect(lambda: self.change_page(-1))
         self.page_next.clicked.connect(lambda: self.change_page(1))
         self.page_label = QLabel(self)
@@ -383,11 +387,11 @@ class CameraBrowser(QDialog):
         self.page_label.setText(t('Seite {value0} / {value1}', value0=self.page + 1, value1=pages))
         self.page_previous.setEnabled(self.page > 0)
         self.page_next.setEnabled(self.page + 1 < pages)
-        columns = max(1, (QApplication.primaryScreen().availableGeometry().width() - 80) // 225)
+        columns = self.columns = max(1, (QApplication.primaryScreen().availableGeometry().width() - 80) // 225)
         start = self.page * self.PAGE_SIZE
         for index, path in enumerate(self.images[start:start + self.PAGE_SIZE]):
             name = os.path.basename(path)
-            button = QToolButton(self.container)
+            button = ArrowToolButton(self.container)
             button.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
             button.setText(name if len(name) <= 23 else name[:20] + "…")
             if is_video(path):
@@ -403,6 +407,8 @@ class CameraBrowser(QDialog):
         if not self.images:
             self.grid.addWidget(QLabel(t('Keine unterstützten Bilder oder Videos gefunden.'), self), 0, 0)
         self.schedule_thumbnails()
+        if self.stack.currentWidget() is self.overview:
+            (next(iter(self.image_buttons.values()), None) or self.header_buttons[0]).setFocus(Qt.OtherFocusReason)
 
     def schedule_thumbnails(self):
         while self.thumbnail_queue and self.thumbnail_running < 2:
@@ -424,6 +430,69 @@ class CameraBrowser(QDialog):
         self.stack.setCurrentWidget(self.viewer)
         self.viewer.open_images([p for p in self.images if not is_video(p)], path)
         QTimer.singleShot(0, self.viewer.render_image)
+
+    def navigate(self, action):
+        """Arrow keys: up/down change the row, left/right the column; header and page rows at the ends."""
+        if self.stack.currentWidget() is not self.overview:
+            return
+        tiles = list(self.image_buttons.values())
+        pages = [button for button in (self.page_previous, self.page_next) if button.isEnabled()]
+        focused = self.focusWidget()
+        if focused in self.header_buttons:
+            row, index = self.header_buttons, self.header_buttons.index(focused)
+            first_down = tiles or pages
+        elif focused in pages:
+            row, index = pages, pages.index(focused)
+            first_down = None
+        else:
+            row, index, first_down = None, 0, None
+        if row is not None:
+            if action in ('left', 'right'):
+                target = row[max(0, min(len(row) - 1, index + (1 if action == 'right' else -1)))]
+            elif action == 'down' and first_down:
+                target = first_down[0]
+            elif action == 'up' and row is pages:
+                target = tiles[-1] if tiles else self.header_buttons[0]
+            else:
+                return
+        else:
+            index = tiles.index(focused) if focused in tiles else 0
+            columns = self.columns
+            if action == 'left':
+                target = tiles[max(0, index - 1)] if tiles else None
+            elif action == 'right':
+                target = tiles[min(len(tiles) - 1, index + 1)] if tiles else None
+            elif action == 'up':
+                target = tiles[index - columns] if index - columns >= 0 else self.header_buttons[0]
+            elif action == 'down':
+                if not tiles:
+                    target = pages[0] if pages else None
+                elif index + columns < len(tiles):
+                    target = tiles[index + columns]
+                elif index // columns < (len(tiles) - 1) // columns:
+                    target = tiles[-1]
+                else:
+                    target = pages[0] if pages else None
+            else:
+                return
+        if target is not None:
+            target.setFocus(Qt.OtherFocusReason)
+            if target in tiles:
+                self.scroll.ensureWidgetVisible(target)
+
+    def keyPressEvent(self, event):
+        key = event.key()
+        if self.stack.currentWidget() is self.overview:
+            if key in ARROW_KEYS:
+                self.navigate(ARROW_KEYS[key])
+                event.accept()
+                return
+            focused = self.focusWidget()
+            if key in (Qt.Key_Return, Qt.Key_Enter) and isinstance(focused, (QPushButton, QToolButton)):
+                focused.click()
+                event.accept()
+                return
+        super().keyPressEvent(event)
 
     def show_overview(self):
         if self.stack.currentWidget() is self.video_viewer and self.video_viewer.path:

@@ -123,5 +123,97 @@ class MenuNavigationTests(unittest.TestCase):
         self.assertEqual(window.selected_category, first)
 
 
+@unittest.skipIf(QApplication is None, 'PyQt5 not installed')
+class GalleryAndColorPickerNavigationTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app = QApplication.instance() or QApplication([])
+
+    def setUp(self):
+        from paimenos import menu_tiles
+        patcher = patch.object(menu_tiles, 'child_access_blocked', lambda: False)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def make_gallery(self, image_count):
+        from paimenos import menu_camera
+        for name, value in (('read_settings', lambda: {'bg_color': '#FF9F00'}), ('media_roots', lambda: []),
+                            ('submit_task', lambda *args, **kwargs: None)):
+            patcher = patch.object(menu_camera, name, value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        browser = menu_camera.CameraBrowser()
+        self.addCleanup(browser.close)
+        browser.images = [f'/media/kids/test/{i:03}.jpg' for i in range(image_count)]
+        browser.render_page()
+        browser.show()
+        return browser
+
+    def press(self, widget, key):
+        QTest.keyClick(widget.focusWidget() or widget, key)
+
+    def tile_index(self, browser):
+        return list(browser.image_buttons.values()).index(browser.focusWidget())
+
+    def test_gallery_moves_by_row_and_column(self):
+        browser = self.make_gallery(10)
+        columns = browser.columns
+        self.assertEqual(self.tile_index(browser), 0)
+        self.press(browser, Qt.Key_Right)
+        self.assertEqual(self.tile_index(browser), 1)
+        self.press(browser, Qt.Key_Down)
+        self.assertEqual(self.tile_index(browser), min(1 + columns, 9))
+        self.press(browser, Qt.Key_Up)
+        self.assertEqual(self.tile_index(browser), 1)
+        self.press(browser, Qt.Key_Left)
+        self.assertEqual(self.tile_index(browser), 0)
+
+    def test_gallery_connects_header_tiles_and_page_buttons(self):
+        browser = self.make_gallery(70)
+        self.press(browser, Qt.Key_Up)
+        self.assertIs(browser.focusWidget(), browser.header_buttons[0])
+        self.press(browser, Qt.Key_Right)
+        self.assertIs(browser.focusWidget(), browser.header_buttons[1])
+        self.press(browser, Qt.Key_Down)
+        self.assertEqual(self.tile_index(browser), 0)
+        tiles = list(browser.image_buttons.values())
+        tiles[-1].setFocus()
+        self.press(browser, Qt.Key_Down)
+        self.assertIs(browser.focusWidget(), browser.page_next)
+        self.press(browser, Qt.Key_Up)
+        self.assertIs(browser.focusWidget(), tiles[-1])
+
+    def test_gallery_return_opens_focused_item(self):
+        browser = self.make_gallery(3)
+        opened = []
+        with patch.object(browser, 'preview', side_effect=opened.append):
+            self.press(browser, Qt.Key_Right)
+            self.press(browser, Qt.Key_Return)
+        self.assertEqual(opened, ['/media/kids/test/001.jpg'])
+
+    def test_color_picker_moves_by_row_and_column(self):
+        from paimenos import menu, state
+        folder = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, folder, True)
+        settings, _ = write_config(folder, 1)
+        for target, name in ((menu, 'SETTINGS_FILE'), (state, 'SETTINGS_FILE')):
+            patcher = patch.object(target, name, str(settings))
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        dialog = menu.ColorPickerDialog()
+        self.addCleanup(dialog.close)
+        dialog.show()
+        buttons = dialog.color_buttons
+        self.assertIs(dialog.focusWidget(), buttons[0])
+        self.press(dialog, Qt.Key_Right)
+        self.assertIs(dialog.focusWidget(), buttons[1])
+        self.press(dialog, Qt.Key_Down)
+        self.assertIs(dialog.focusWidget(), buttons[5])
+        self.press(dialog, Qt.Key_Left)
+        self.assertIs(dialog.focusWidget(), buttons[4])
+        self.press(dialog, Qt.Key_Up)
+        self.assertIs(dialog.focusWidget(), buttons[0])
+
+
 if __name__ == '__main__':
     unittest.main()
