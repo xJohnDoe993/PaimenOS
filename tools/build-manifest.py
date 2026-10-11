@@ -6,7 +6,7 @@ import json
 ROOT = Path(__file__).resolve().parents[1]
 groups = {
     'shared': ['__init__', 'i18n', 'paths', 'state', 'diagnostics', 'images', 'media_files', 'categories', 'fullscreen', 'webapp', 'osd_state', 'hardware_profile'],
-    'desktop': ['menu', 'video', 'parent_ui', 'parent_ui_system', 'status_overlay', 'close_overlay', 'browser', 'lockscreen', 'timer', 'media', 'screen_guard', 'foreground', 'idle', 'power'],
+    'desktop': ['menu', 'menu_tiles', 'menu_camera', 'menu_support', 'video', 'parent_ui', 'parent_ui_system', 'status_overlay', 'close_overlay', 'browser', 'lockscreen', 'timer', 'media', 'screen_guard', 'foreground', 'idle', 'power'],
     'controller': ['controller', 'controller_profiles', 'input_devices'],
     'network': ['wifi', 'bluetooth', 'wifi_ui', 'bluetooth_ui', 'network_status'],
     'emulators': ['backups', 'emulators', 'emulator_video', 'emulator_session', 'savestates', 'emulator_install', 'emulator_catalog', 'emulator_service'],

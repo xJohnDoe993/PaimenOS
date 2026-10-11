@@ -1391,5 +1391,7 @@
   "Verbindungen": "Connections",
   "Version {value0} installieren? Benötigte Debian-Pakete werden bei Bedarf nachinstalliert. Apps und Spiele vorher schließen. Die PaimenOS-Dienste und die Kindersitzung starten neu.": "Install version {value0}? Required Debian packages are installed if needed. Close apps and games first. The PaimenOS services and the kids session will restart.",
   "{value0} Gerät(e) ohne Namen ausgeblendet.": "{value0} device(s) without a name hidden.",
-  "{value0} GiB": "{value0} GiB"
+  "{value0} GiB": "{value0} GiB",
+  "Pfeiltasten: wählen · Enter: öffnen": "Arrow keys: choose · Enter: open",
+  "Tab: Kategorie wechseln": "Tab: switch category"
 }

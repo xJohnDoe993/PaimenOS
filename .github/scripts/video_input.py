@@ -14,7 +14,7 @@ from PyQt5 import sip
 from PyQt5.QtWidgets import QApplication, QWidget
 from Xlib import X, XK, display
 from Xlib.ext import xtest
-from paimenos import menu
+from paimenos import menu, menu_camera
 
 
 def main():
@@ -23,8 +23,8 @@ def main():
     app = QApplication([])
     connection = display.Display()
     host = QWidget()
-    with patch.object(menu, 'read_settings', return_value={'bg_color': '#FF9F00'}), \
-            patch.object(menu, 'media_roots', return_value=[]), patch.object(menu, 'submit_task'):
+    with patch.object(menu_camera, 'read_settings', return_value={'bg_color': '#FF9F00'}), \
+            patch.object(menu_camera, 'media_roots', return_value=[]), patch.object(menu_camera, 'submit_task'):
         browser = menu.CameraBrowser(host)
 
     def pump(seconds):

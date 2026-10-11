@@ -26,6 +26,9 @@
     "desktop": {
       "files": [
         "src/paimenos/menu.py",
+        "src/paimenos/menu_tiles.py",
+        "src/paimenos/menu_camera.py",
+        "src/paimenos/menu_support.py",
         "src/paimenos/video.py",
         "src/paimenos/parent_ui.py",
         "src/paimenos/parent_ui_system.py",
