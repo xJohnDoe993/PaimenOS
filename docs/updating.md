@@ -106,6 +106,15 @@ python3 tools/build-release.py
 
 Das Release-Werkzeug erzeugt ein Archiv und eine SHA-256-Datei in `dist/`. Beide Dateien als GitHub-Release-Assets veröffentlichen, wie oben beschrieben.
 
+### Direkt auf ein Testgerät übertragen
+
+```bash
+make deploy                                   # Ziel: SSH-Alias paimenos-t450
+make deploy DEVICE=john@192.168.10.196 ARGS="--component desktop"
+```
+
+`tools/deploy-to-device.sh` prüft die Quellen, kopiert das Arbeitsverzeichnis (auch uncommittete und neue Dateien) nach `~/paimenos-deploy` auf dem Gerät und startet dort `tools/deploy.py`. Das Passwort für `sudo` wird im Terminal abgefragt; für unbeaufsichtigte Läufe kann `DEPLOY_SUDO_PASSWORD` gesetzt werden. Das Tastatur- und Menü-Verhalten lässt sich ohne Gerät mit `tests/test_menu_navigation.py` prüfen (benötigt PyQt5, läuft mit `QT_QPA_PLATFORM=offscreen`).
+
 ## Auf dem Gerät aktualisieren
 
 Archiv aus einer vertrauenswürdigen Quelle kopieren und entpacken. Alle folgenden Befehle aus dem neuen Projektordner ausführen:

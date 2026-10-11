@@ -56,6 +56,7 @@ class MenuNavigationTests(unittest.TestCase):
             patcher = patch.object(menu, name)
             patcher.start()
             self.addCleanup(patcher.stop)
+        menu.ControllerReader.return_value.devices = []  # no controller connected
         window = menu.PaimenOSMenu()
         window.resize(1100, 700)
         window.show()
@@ -111,6 +112,13 @@ class MenuNavigationTests(unittest.TestCase):
         self.assertEqual(self.focused_index(window), 9)
         self.press(window, Qt.Key_Home)
         self.assertEqual(self.focused_index(window), 0)
+
+    def test_keyboard_hint_mentions_tab_only_with_category_tabs(self):
+        plain = self.make_menu(3)
+        self.assertFalse(plain.keyboard_hint.isHidden())
+        self.assertNotIn('Tab', plain.keyboard_hint.text())
+        tabs = self.make_menu(3, category_tabs=True)
+        self.assertIn('Tab', tabs.keyboard_hint.text())
 
     def test_tab_switches_category_when_tabs_are_enabled(self):
         window = self.make_menu(10, category_tabs=True)

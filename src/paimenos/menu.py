@@ -291,6 +291,11 @@ class PaimenOSMenu(QWidget):
         self.controller_hint.setAlignment(Qt.AlignCenter)
         self.controller_hint.hide()
         self.main_layout.addWidget(self.controller_hint)
+        self.keyboard_hint = QLabel()
+        self.keyboard_hint.setFont(QFont('DejaVu Sans', 12))
+        self.keyboard_hint.setWordWrap(True)
+        self.keyboard_hint.setAlignment(Qt.AlignCenter)
+        self.main_layout.addWidget(self.keyboard_hint)
 
         self.network_status = NetworkStatus()
         self.last_online_state = None
@@ -306,8 +311,17 @@ class PaimenOSMenu(QWidget):
         self.update_clock_and_net()
         self.controller = ControllerReader(self, self.controller_enabled)
         self.controller.action.connect(self.controller_action)
-        self.controller.available_changed.connect(lambda count: self.controller_hint.setVisible(count > 0))
-        self.controller_hint.setVisible(bool(self.controller.devices))
+        self.controller.available_changed.connect(lambda count: self.show_input_hint(count > 0))
+        self.show_input_hint(bool(self.controller.devices))
+
+    def show_input_hint(self, controller_connected):
+        """Show the controller help when one is connected, otherwise the keyboard help."""
+        self.controller_hint.setVisible(controller_connected)
+        text = t('Pfeiltasten: wählen · Enter: öffnen')
+        if not self.category_bar.isHidden():
+            text += ' · ' + t('Tab: Kategorie wechseln')
+        self.keyboard_hint.setText(text)
+        self.keyboard_hint.setVisible(not controller_connected)
 
     def apply_theme(self):
         settings = load_json(SETTINGS_FILE)
@@ -412,6 +426,7 @@ class PaimenOSMenu(QWidget):
 
         tabs_enabled = settings.get('category_tabs') is True
         self.category_bar.setVisible(tabs_enabled)
+        self.show_input_hint(self.controller_hint.isVisibleTo(self))
         self.visible_categories = available_categories(visible_apps)
         if not tabs_enabled or self.selected_category not in self.visible_categories:
             self.selected_category = 'all'
