@@ -18,8 +18,8 @@ CACHE_DIR = USER_DATA_DIR / 'speech'
 GENERATOR = RELEASE_DIR / 'tools/speech-generate.py'
 GENDERS = ('female', 'male')
 VOICES = {
-    'de': {'female': 'de_DE-ramona-low', 'male': 'de_DE-thorsten-medium'},
-    'en': {'female': 'en_US-amy-medium', 'male': 'en_US-ryan-medium'},
+    'de': {'male': 'de_DE-thorsten-medium', 'female': 'de_DE-ramona-low'},
+    'en': {'male': 'en_US-ryan-medium', 'female': 'en_US-amy-medium'},
 }
 DEBOUNCE_MS = 250  # Schnelles Durchblättern soll nicht jede Kachel einzeln vorlesen.
 
@@ -38,9 +38,9 @@ def spoken_source(item):
     return str(item.get('pronunciation') or default_pronunciation(title) or title)
 
 
-def voice_name(gender='female', lang=None):
+def voice_name(gender='male', lang=None):
     voices = VOICES.get(lang or language(), VOICES['de'])
-    return voices.get(gender, voices['female'])
+    return voices.get(gender, voices['male'])
 
 
 def cache_name(text, voice):

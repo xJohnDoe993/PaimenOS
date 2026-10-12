@@ -43,7 +43,8 @@ class SpeechTests(unittest.TestCase):
             female, male = speech.voice_name('female', lang), speech.voice_name('male', lang)
             self.assertNotEqual(female, male)
             self.assertTrue(female.startswith(lang) and male.startswith(lang))
-        self.assertEqual(speech.voice_name('unbekannt', 'de'), speech.voice_name('female', 'de'))
+        self.assertEqual(speech.voice_name('unbekannt', 'de'), speech.voice_name('male', 'de'))
+        self.assertEqual(speech.voice_name(None, 'en'), speech.voice_name('male', 'en'))  # Standard: Männerstimme
 
     def test_changing_the_voice_uses_a_separate_set_of_recordings(self):
         from paimenos import speech

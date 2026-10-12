@@ -89,7 +89,7 @@ def main():
     parser.add_argument('--language', choices=sorted(VOICES), default=None)
     parser.add_argument('--check', action='store_true')
     args = parser.parse_args()
-    names = list(VOICES[args.language or language()].values())  # Frauen- und Männerstimme
+    names = list(VOICES[args.language or language()].values())  # Männer- und Frauenstimme
     if args.check:
         ready = all(check(name) for name in names)
         print(t('Sprachausgabe bereit: ') + str(ready))

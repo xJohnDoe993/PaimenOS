@@ -151,7 +151,7 @@ Für ein manuelles Teilupdate dieses Features sowohl `shared` als auch `desktop`
 
 ## Sprachausgabe im Kinder-Menü (Piper)
 
-Das Setup richtet Piper (`piper-tts` 1.8.0 in einem eigenen virtualenv) und zwei Stimmen für die Systemsprache unter `/usr/local/lib/paimenos-speech` ein (rund 320 MB; je Sprache eine Frauen- und eine Männerstimme: Deutsch `de_DE-ramona-low` und `de_DE-thorsten-medium`, Englisch `en_US-amy-medium` und `en_US-ryan-medium`). Die Stimme stammt von einem festen Hugging-Face-Commit und wird per SHA-256 geprüft. Schlägt das fehl, läuft das Setup weiter, die Sprachausgabe bleibt dann aus.
+Das Setup richtet Piper (`piper-tts` 1.8.0 in einem eigenen virtualenv) und zwei Stimmen für die Systemsprache unter `/usr/local/lib/paimenos-speech` ein (rund 320 MB; je Sprache eine Männer- und eine Frauenstimme: Deutsch `de_DE-thorsten-medium` und `de_DE-ramona-low`, Englisch `en_US-ryan-medium` und `en_US-amy-medium`). Die Stimme stammt von einem festen Hugging-Face-Commit und wird per SHA-256 geprüft. Schlägt das fehl, läuft das Setup weiter, die Sprachausgabe bleibt dann aus.
 
 Auf einem bereits eingerichteten Gerät einmalig nachholen:
 
@@ -159,4 +159,4 @@ Auf einem bereits eingerichteten Gerät einmalig nachholen:
 sudo python3 /usr/local/lib/paimenos/current/tools/install-paimenos-speech.py
 ```
 
-Aktivieren und die Stimme (Frau oder Mann) wählen lässt sich im Eltern-Bereich unter **Einstellungen** (Standard: aus, Frauenstimme). Piper läuft nicht dauerhaft: Das Menü erzeugt für jeden App-Namen einmalig eine WAV-Datei in `~/.local/share/paimenos/speech` (Dateiname aus Stimme und Text; ein Hintergrundprozess mit niedrigster Priorität, nur für fehlende Namen) und spielt beim Anwählen nur diese Datei ab. Neue oder umbenannte Apps bekommen ihre Aufnahme beim nächsten Neuladen der App-Liste, in der Regel innerhalb weniger Sekunden. `--check` zeigt, ob Piper und Stimme vorhanden sind.
+Aktivieren und die Stimme (Frau oder Mann) wählen lässt sich im Eltern-Bereich unter **Einstellungen** (Standard: aus, Männerstimme). Piper läuft nicht dauerhaft: Das Menü erzeugt für jeden App-Namen einmalig eine WAV-Datei in `~/.local/share/paimenos/speech` (Dateiname aus Stimme und Text; ein Hintergrundprozess mit niedrigster Priorität, nur für fehlende Namen) und spielt beim Anwählen nur diese Datei ab. Neue oder umbenannte Apps bekommen ihre Aufnahme beim nächsten Neuladen der App-Liste, in der Regel innerhalb weniger Sekunden. `--check` zeigt, ob Piper und Stimme vorhanden sind.

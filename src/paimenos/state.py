@@ -12,7 +12,7 @@ DEFAULTS = {
     "pin": "", "bg_color": "#FF9F00", "daily_limit_minutes": 0,
     "bonus_minutes": 0, "today_used_seconds": 0,
     "last_used_date": "", "disabled_apps": [], "category_tabs": False,
-    "speak_titles": False, "speak_voice": "female",
+    "speak_titles": False, "speak_voice": "male",
 }
 
 
