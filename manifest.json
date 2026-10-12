@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "runtime_api": 3,
-  "version": "0.69.0",
+  "version": "0.70.0",
   "components": {
     "shared": {
       "files": [
@@ -18,9 +18,11 @@
         "src/paimenos/webapp.py",
         "src/paimenos/osd_state.py",
         "src/paimenos/hardware_profile.py",
+        "src/paimenos/pronunciation.py",
         "run.py",
         "assets/webapp.css",
         "assets/i18n/en.json",
+        "data/default-pronunciations.json",
         "assets/branding/paimenos-logo.png"
       ]
     },
@@ -30,6 +32,7 @@
         "src/paimenos/menu_tiles.py",
         "src/paimenos/menu_camera.py",
         "src/paimenos/menu_support.py",
+        "src/paimenos/speech.py",
         "src/paimenos/video.py",
         "src/paimenos/parent_ui.py",
         "src/paimenos/parent_ui_system.py",
@@ -150,12 +153,14 @@
         "tools/deploy.py",
         "tools/initialize-settings.py",
         "tools/install-paimenos-plymouth.py",
+        "tools/install-paimenos-speech.py",
         "tools/install-update-packages.py",
         "tools/language.py",
         "tools/merge-apps.py",
         "tools/migrate-flatpak-data.py",
         "tools/native-app-entry.py",
         "tools/render-config.py",
+        "tools/speech-generate.py",
         "tools/stage-wifi.py",
         "tools/wifi-handoff.py",
         "data/update-packages.json",

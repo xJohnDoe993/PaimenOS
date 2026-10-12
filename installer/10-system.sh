@@ -30,7 +30,7 @@ if apt-get install -y \
     pipewire-alsa \
     pipewire-pulse \
     wireplumber \
-    alsa-utils \
+    alsa-utils python3-venv \
     firmware-linux-free bluez libspa-0.2-bluetooth \
     xserver-xorg \
     x11-xserver-utils unclutter-xfixes \

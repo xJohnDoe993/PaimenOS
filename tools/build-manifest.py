@@ -5,8 +5,8 @@ import json
 
 ROOT = Path(__file__).resolve().parents[1]
 groups = {
-    'shared': ['__init__', 'i18n', 'paths', 'state', 'theme', 'diagnostics', 'images', 'media_files', 'categories', 'fullscreen', 'webapp', 'osd_state', 'hardware_profile'],
-    'desktop': ['menu', 'menu_tiles', 'menu_camera', 'menu_support', 'video', 'parent_ui', 'parent_ui_system', 'status_overlay', 'close_overlay', 'browser', 'lockscreen', 'timer', 'media', 'screen_guard', 'foreground', 'idle', 'power'],
+    'shared': ['__init__', 'i18n', 'paths', 'state', 'theme', 'diagnostics', 'images', 'media_files', 'categories', 'fullscreen', 'webapp', 'osd_state', 'hardware_profile', 'pronunciation'],
+    'desktop': ['menu', 'menu_tiles', 'menu_camera', 'menu_support', 'speech', 'video', 'parent_ui', 'parent_ui_system', 'status_overlay', 'close_overlay', 'browser', 'lockscreen', 'timer', 'media', 'screen_guard', 'foreground', 'idle', 'power'],
     'controller': ['controller', 'controller_profiles', 'input_devices'],
     'network': ['wifi', 'bluetooth', 'wifi_ui', 'bluetooth_ui', 'network_status'],
     'emulators': ['backups', 'emulators', 'emulator_video', 'emulator_session', 'savestates', 'emulator_install', 'emulator_catalog', 'emulator_service'],
@@ -16,7 +16,7 @@ groups = {
     'tools': [], 'services': [],
 }
 components = {key: {'files': ['src/paimenos/' + name + '.py' for name in names]} for key, names in groups.items()}
-components['shared']['files'] += ['run.py', 'assets/webapp.css', 'assets/i18n/en.json']
+components['shared']['files'] += ['run.py', 'assets/webapp.css', 'assets/i18n/en.json', 'data/default-pronunciations.json']
 components['shared']['files'] += sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'assets/branding').glob('*.png'))
 components['backend']['files'] += sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'assets/parent-web').glob('*.html'))
 components['emulators']['files'] += ['data/emulator-catalog.json', 'data/app-data-catalog.json']
