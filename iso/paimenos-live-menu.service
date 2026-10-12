@@ -1,0 +1,22 @@
+[Unit]
+Description=PaimenOS Live-Menü
+After=systemd-user-sessions.service NetworkManager.service plymouth-quit-wait.service
+# Nur im Live-System: live-boot hängt das Boot-Medium dort ein; das installierte System hat es nicht.
+ConditionPathExists=/run/live/medium
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/paimenos-live-menu
+Restart=always
+RestartSec=1
+StandardInput=tty-force
+StandardOutput=tty
+StandardError=tty
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+Environment=TERM=linux
+
+[Install]
+WantedBy=multi-user.target

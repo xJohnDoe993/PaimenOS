@@ -21,7 +21,7 @@ mkdir -p config/includes.chroot/opt/paimenos-source config/hooks/live config/pac
 install -m 0644 "$ROOT/iso/preseed.cfg" config/includes.binary/preseed.cfg
 # Tracked source only: no credentials, git history or previous build output.
 git -C "$ROOT" archive HEAD | tar -x -C config/includes.chroot/opt/paimenos-source
-printf '%s\n' 'live-boot live-config live-config-systemd linux-image-amd64 systemd-sysv locales sudo python3 ca-certificates network-manager wpasupplicant firmware-iwlwifi firmware-realtek firmware-atheros firmware-misc-nonfree' > config/package-lists/base.list.chroot
+printf '%s\n' 'live-boot live-config live-config-systemd linux-image-amd64 systemd-sysv locales sudo python3 ca-certificates network-manager wpasupplicant firmware-iwlwifi firmware-realtek firmware-atheros firmware-misc-nonfree whiptail kexec-tools' > config/package-lists/base.list.chroot
 cat > config/hooks/live/0900-paimenos.hook.chroot <<'HOOK'
 #!/bin/bash
 set -Eeuo pipefail

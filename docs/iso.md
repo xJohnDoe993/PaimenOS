@@ -29,8 +29,16 @@ benötigt auf dem Gerät eine Internetverbindung und verwendet unverändert
 `/opt/paimenos-source/install.sh`, den aktuellen modularen Setup-Prozess des Repos.
 Das Plymouth-Theme wird ebenfalls erst durch dieses Setup aktiviert.
 
-Der Live-Modus bietet eine Debian-Textkonsole zum Prüfen der Basis, keine fertige
-Kinderoberfläche. Die automatische Einrichtung wird nur auf dem installierten
+Der Live-Modus startet auf tty1 ein Textmenü (`iso/live-menu.sh`) mit
+**PaimenOS installieren**, **WLAN/Netzwerk einrichten** (`nmtui`), **Konsole
+öffnen** (Benutzer `live`, mit `exit` zurück), **Neu starten** und
+**Ausschalten**. „Installieren“ lädt den Debian-Installer vom Boot-Medium per
+`kexec` (grafisch, sonst Text) und startet ihn mit derselben `preseed.cfg` wie
+der Bootmenü-Eintrag. Geht das nicht, etwa bei Secure Boot, erklärt das Menü
+den Neustart und bietet ihn an; im Bootmenü dann „Graphical Install“ oder
+„Install“ wählen. Das Menü läuft nur im Live-System (`/run/live/medium`), nie
+auf dem installierten Gerät. Es gibt keine fertige Kinderoberfläche im
+Live-System. Die automatische Einrichtung wird nur auf dem installierten
 System durch den Debian-Installer aktiviert. Nach erfolgreichem Setup wird sie
 deaktiviert und erscheint bei späteren Neustarts nicht erneut.
 

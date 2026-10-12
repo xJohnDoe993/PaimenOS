@@ -1411,5 +1411,15 @@
   "Aussprache": "Pronunciation",
   "z. B. Dschieni statt Geany": "e.g. Jeany instead of Geany",
   "Wird bei eingeschalteter Sprachausgabe statt des Namens vorgelesen. Lautschrift so schreiben, wie ein Deutscher sie sprechen würde, z. B. „Dschieni“ für Geany oder „Juh-tjuhb“ für YouTube. Leer lassen = Name.": "Read aloud instead of the name when speech is on. Spell it the way it should sound, e.g. \"Jeany\" for Geany. Leave empty to use the name.",
-  "Die Aussprache darf höchstens 80 Zeichen ohne Steuerzeichen enthalten.": "The pronunciation may have at most 80 characters without control characters."
+  "Die Aussprache darf höchstens 80 Zeichen ohne Steuerzeichen enthalten.": "The pronunciation may have at most 80 characters without control characters.",
+  "PaimenOS Live-System": "PaimenOS live system",
+  "Der Installer richtet PaimenOS auf diesem Gerät ein. Die Zielplatte wählst du im nächsten Schritt; ihr Inhalt wird dabei gelöscht.\\n\\nJetzt installieren?": "The installer sets up PaimenOS on this device. You choose the target disk in the next step; its contents will be erased.\\n\\nInstall now?",
+  "Installer wird gestartet ...": "Starting the installer ...",
+  "Der Installer konnte nicht direkt gestartet werden.\\n\\nBitte jetzt neu starten und im Bootmenü „Graphical Install“ oder „Install“ wählen. Jetzt neu starten?": "The installer could not be started directly.\\n\\nPlease restart now and choose “Graphical Install” or “Install” in the boot menu. Restart now?",
+  "Willkommen bei PaimenOS. Was möchtest du tun?": "Welcome to PaimenOS. What would you like to do?",
+  "PaimenOS installieren": "Install PaimenOS",
+  "WLAN/Netzwerk einrichten": "Set up Wi-Fi/network",
+  "Konsole öffnen": "Open a console",
+  "Neu starten": "Restart",
+  "Mit exit zurück zum Menü.": "Type exit to return to the menu."
 }
