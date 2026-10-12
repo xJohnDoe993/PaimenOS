@@ -5,7 +5,7 @@ import os
 import signal
 import sys
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QColor, QLinearGradient, QPainter
+from PyQt5.QtGui import QColor, QFont, QFontMetrics, QLinearGradient, QPainter
 from PyQt5.QtWidgets import QApplication, QPushButton, QWidget
 from paimenos import theme
 from paimenos.state import read_settings
@@ -72,13 +72,21 @@ class CloseButtonOverlay(QWidget):
         gradient.setColorAt(1, at(bar - 10))
         QPainter(self).fillRect(self.rect(), gradient)
 
+    def button_width(self):
+        """Breite aus dem Text (englisch ist länger als deutsch), mindestens MENU_WIDTH."""
+        font = QFont('DejaVu Sans')
+        font.setPixelSize(18)
+        font.setBold(True)
+        return max(MENU_WIDTH, QFontMetrics(font).horizontalAdvance(self.button.text()) + 48)
+
     def place_button(self, *args):
         screen = QApplication.primaryScreen().geometry()
         height = BAR_HEIGHT - 20
         # Openbox's global maximize rule must not enlarge this managed tool window.
-        self.setFixedSize(MENU_WIDTH, height)
-        self.setGeometry(screen.right() - MENU_WIDTH - 11, screen.top() + 10, MENU_WIDTH, height)
-        self.button.setGeometry(0, 0, MENU_WIDTH, height)
+        width = self.button_width()
+        self.setFixedSize(width, height)
+        self.setGeometry(screen.right() - width - 11, screen.top() + 10, width, height)
+        self.button.setGeometry(0, 0, width, height)
 
     def close_target(self):
         # Recheck on click too: expiry can occur between two monitor ticks.
