@@ -156,7 +156,7 @@ def duration(seconds):
     return t('{value0} Min. {value1:02d} Sek.', value0=minutes, value1=seconds)
 
 
-def save_preferences(pin, confirmation, color, category_tabs=None):
+def save_preferences(pin, confirmation, color, category_tabs=None, speak_titles=None, speak_voice=None):
     patch = {}
     if pin:
         if not re.fullmatch(r'[0-9]{4,12}', pin):
@@ -170,6 +170,12 @@ def save_preferences(pin, confirmation, color, category_tabs=None):
         raise ValueError(t('Bitte eine gültige Hintergrundfarbe auswählen.'))
     if category_tabs is not None:
         patch['category_tabs'] = bool(category_tabs)
+    if speak_titles is not None:
+        patch['speak_titles'] = bool(speak_titles)
+    if speak_voice is not None:
+        if speak_voice not in ('female', 'male'):
+            raise ValueError(t('Ungültige Stimme.'))
+        patch['speak_voice'] = speak_voice
     patch['bg_color'] = color.upper()
     return update_settings(patch)
 
@@ -223,10 +229,14 @@ def native_command(target, arguments):
     return shlex.join([resolved] + parts[1:] + extra)
 
 
-def save_app(title, target, arguments='', icon_url='', app_id=None, icon_data=None, reset_icon=False, category=None):
+def save_app(title, target, arguments='', icon_url='', app_id=None, icon_data=None, reset_icon=False, category=None, pronunciation=None):
     title, target, arguments, icon_url = (value.strip() for value in (title, target, arguments, icon_url))
     if not title or len(title) > 80 or any(ord(c) < 32 for c in title):
         raise ValueError(t('Bitte einen Namen mit höchstens 80 Zeichen ohne Steuerzeichen eingeben.'))
+    if pronunciation is not None:
+        pronunciation = ' '.join(pronunciation.split())
+        if len(pronunciation) > 80 or any(ord(c) < 32 for c in pronunciation):
+            raise ValueError(t('Die Aussprache darf höchstens 80 Zeichen ohne Steuerzeichen enthalten.'))
     previous = {}
     target_id = safe_id(title) + '-' + secrets.token_hex(4) if app_id is None else app_id
     if app_id is not None:
@@ -279,6 +289,10 @@ def save_app(title, target, arguments='', icon_url='', app_id=None, icon_data=No
             old_icon = item.get('icon_file')
             item.update(patch)
             item['user_modified'] = True
+            if pronunciation:
+                item['pronunciation'] = pronunciation
+            elif pronunciation is not None:
+                item.pop('pronunciation', None)
             if patch.get('type') == 'webapp':
                 item.pop('command', None)
             elif patch.get('type') == 'native':

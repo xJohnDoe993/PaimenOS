@@ -3,6 +3,7 @@ from paimenos.i18n import t
 from paimenos.paths import USER_DATA_DIR
 import os
 from paimenos.screen_guard import child_access_blocked
+from paimenos.speech import spoken_source
 from PyQt5.QtCore import Qt, QRectF, QSize, QTimer
 from PyQt5.QtGui import QFont, QIcon, QPixmap, QColor, QPainter, QLinearGradient, QPen
 from PyQt5.QtWidgets import (
@@ -157,9 +158,17 @@ class PaimenOSTile(ArrowPassThrough, QPushButton):
         layout.addWidget(self.title_label, 0)
         self.setStyleSheet("PaimenOSTile { background: transparent; border: none; }")
 
+    def announce(self):
+        window = self.window()
+        if hasattr(window, 'speak_title') and not child_access_blocked():
+            window.speak_title(spoken_source(self.item))
+
     def focusInEvent(self, event):
         super().focusInEvent(event)
         self.title_label.set_scrolling(True)
+        # Fensterwechsel (Rückkehr aus einer App) soll nichts vorlesen.
+        if event.reason() not in (Qt.ActiveWindowFocusReason, Qt.PopupFocusReason):
+            self.announce()
 
     def focusOutEvent(self, event):
         super().focusOutEvent(event)
@@ -168,6 +177,7 @@ class PaimenOSTile(ArrowPassThrough, QPushButton):
     def enterEvent(self, event):
         super().enterEvent(event)
         self.title_label.set_scrolling(True)
+        self.announce()
 
     def leaveEvent(self, event):
         super().leaveEvent(event)

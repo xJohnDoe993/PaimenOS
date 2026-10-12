@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout, QFormLa
     QComboBox, QMessageBox, QColorDialog, QPlainTextEdit, QFileDialog, QProgressBar)
 import paimenos.parent as parents
 import paimenos.emulators as emulators
+from paimenos.pronunciation import default_pronunciation
 from paimenos.state import read_settings
 from paimenos.paths import ASSETS_DIR
 from paimenos.images import TaskSignals, submit_task
@@ -98,6 +99,9 @@ class AppEditor(QDialog):
         target, arguments = parents.app_launch_fields(self.item)
         self.title_input = QLineEdit(self.item.get('title', ''))
         self.title_input.setMaxLength(80)
+        self.pronunciation_input = QLineEdit(self.item.get('pronunciation', ''))
+        self.pronunciation_input.setMaxLength(80)
+        self.pronunciation_input.setPlaceholderText(default_pronunciation(self.item.get('title', '')) or t('z. B. Dschieni statt Geany'))
         self.target_input = QLineEdit(target)
         self.target_input.setPlaceholderText(t('https://… oder /usr/bin/vlc'))
         self.arguments_input = QLineEdit(arguments)
@@ -108,6 +112,7 @@ class AppEditor(QDialog):
         self.category_input.setCurrentIndex(max(0, self.category_input.findData(self.item.get('category', 'auto'))))
         form.addRow(t('Kategorie'), self.category_input)
         form.addRow(t('Name'), self.title_input)
+        form.addRow(t('Aussprache'), self.pronunciation_input)
         form.addRow(t('Webadresse / Programm'), self.target_input)
         form.addRow(t('Programmparameter'), self.arguments_input)
         self.icon_input = QLineEdit(self.item.get('icon_url', ''))
@@ -164,7 +169,7 @@ class AppEditor(QDialog):
 
     def set_busy(self, busy):
         self.busy = busy
-        for widget in (self.save_button, self.cancel_button, self.title_input, self.target_input,
+        for widget in (self.save_button, self.cancel_button, self.title_input, self.pronunciation_input, self.target_input,
                        self.arguments_input, self.icon_input, self.choose_button, self.clear_button, self.reset_input, self.category_input):
             widget.setEnabled(not busy)
         if not busy:
@@ -176,7 +181,8 @@ class AppEditor(QDialog):
     def save(self):
         values = dict(title=self.title_input.text(), target=self.target_input.text(),
                       arguments=self.arguments_input.text(), icon_url=self.icon_input.text(),
-                      app_id=self.item.get('id'), reset_icon=self.reset_input.isChecked(), category=self.category_input.currentData())
+                      app_id=self.item.get('id'), reset_icon=self.reset_input.isChecked(), category=self.category_input.currentData(),
+                      pronunciation=self.pronunciation_input.text())
         path = self.icon_path
         def operation():
             if path:
@@ -515,6 +521,15 @@ class ParentDialog(QDialog):
         self.category_tabs_input.setChecked(bool(self.st.get('category_tabs', False)))
         color_card.addWidget(self.category_tabs_input)
         color_card.addWidget(label(t('Alles, Webapps, Spiele und Produktiv. Leere Kategorien verschwinden; Schultertasten wechseln die Ansicht.'), True))
+        self.speak_titles_input = QCheckBox(t('Namen der Apps beim Anwählen vorlesen'))
+        self.speak_titles_input.setChecked(bool(self.st.get('speak_titles', False)))
+        color_card.addWidget(self.speak_titles_input)
+        self.speak_voice_input = QComboBox()
+        self.speak_voice_input.addItem(t('Männerstimme'), 'male')
+        self.speak_voice_input.addItem(t('Frauenstimme'), 'female')
+        self.speak_voice_input.setCurrentIndex(1 if self.st.get('speak_voice') == 'female' else 0)
+        color_card.addWidget(self.speak_voice_input)
+        color_card.addWidget(label(t('Im Kinder-Menü wird der Name der gewählten Kachel vorgelesen. Neue Namen werden einmalig im Hintergrund als Sprachaufnahme erzeugt.'), True))
         layout.addWidget(button(t('Einstellungen speichern'), self.save_settings))
         layout.addStretch()
 
@@ -556,7 +571,7 @@ class ParentDialog(QDialog):
         self.color_button.setStyleSheet(f'border:3px solid {self.color};')
 
     def save_settings(self):
-        if self.perform(lambda: parents.save_preferences(self.pin_input.text().strip(), self.pin_confirm.text().strip(), self.color, self.category_tabs_input.isChecked()), t('Einstellungen gespeichert.')):
+        if self.perform(lambda: parents.save_preferences(self.pin_input.text().strip(), self.pin_confirm.text().strip(), self.color, self.category_tabs_input.isChecked(), self.speak_titles_input.isChecked(), self.speak_voice_input.currentData()), t('Einstellungen gespeichert.')):
             self.pin_input.clear(); self.pin_confirm.clear(); self.color_dirty = False
 
     def refresh(self):

@@ -58,6 +58,6 @@ fi
 unset BASH_ENV
 source "${REPO_DIR}/installer/common.sh"
 source "${REPO_DIR}/installer/environment.sh"
-for module in 10-system 20-hardware 30-plymouth 40-user 50-browser 60-apps 70-defaults 80-services 90-desktop 99-finish; do
+for module in 10-system 20-hardware 30-plymouth 40-user 50-browser 60-apps 65-speech 70-defaults 80-services 90-desktop 99-finish; do
     source "${REPO_DIR}/installer/${module}.sh"
 done

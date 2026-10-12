@@ -19,6 +19,7 @@ from paimenos.screen_guard import child_access_blocked, screen_time_expired, pro
 from paimenos.categories import CATEGORIES, available_categories, filter_category
 from paimenos.controller import ControllerReader
 from paimenos.network_status import NetworkStatus
+from paimenos.speech import TitleSpeaker, spoken_source
 from paimenos import hardware_profile
 from PyQt5 import sip
 from paimenos.menu_support import find_program, get_battery_status
@@ -175,6 +176,7 @@ class PaimenOSMenu(QWidget):
         self.camera_browser = None
         self.overlay_proc = None
         self.time_blocked = False
+        self.speaker = TitleSpeaker(self)
         self.setWindowTitle(t('PaimenOS Kinder-Menü'))
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setObjectName('kidsMenu')
@@ -425,6 +427,11 @@ class PaimenOSMenu(QWidget):
             visible_apps.append(app)
 
         tabs_enabled = settings.get('category_tabs') is True
+        self.speaker.set_gender(settings.get('speak_voice'))
+        self.speaker.set_enabled(settings.get('speak_titles') is True)
+        # Auch aktuell ausgeblendete Apps (offline, ohne Medium) bekommen ihre Aufnahme schon jetzt.
+        self.speaker.ensure_recordings(spoken_source(app) for app in all_apps
+                                       if app.get('id') not in disabled and app.get('enabled') is not False)
         self.category_bar.setVisible(tabs_enabled)
         self.show_input_hint(self.controller_hint.isVisibleTo(self))
         self.visible_categories = available_categories(visible_apps)
@@ -486,6 +493,9 @@ class PaimenOSMenu(QWidget):
                 self.cycle_category(1 if forward else -1)
             return True
         return super().focusNextPrevChild(forward)
+
+    def speak_title(self, title):
+        self.speaker.say(title)
 
     def focus_tile(self, index):
         if self.app_buttons:
@@ -649,6 +659,7 @@ class PaimenOSMenu(QWidget):
             QTimer.singleShot(0, self.hide_child_views)
 
     def launch(self, item, return_window=None):
+        self.speaker.stop()
         if getattr(self, "active_process", None) is not None:
             return
         if item.get("command") == "__POWEROFF__":
@@ -820,7 +831,8 @@ class PaimenOSMenu(QWidget):
             # A parent can grant bonus time remotely while the menu is hidden.
             self.restore_child_view()
         signature = (os.stat(APPS_FILE).st_mtime_ns if os.path.exists(APPS_FILE) else 0,
-                     tuple(settings.get("disabled_apps", [])), settings.get("bg_color"), settings.get("category_tabs", False))
+                     tuple(settings.get("disabled_apps", [])), settings.get("bg_color"), settings.get("category_tabs", False),
+                     settings.get("speak_titles", False), settings.get("speak_voice"))
         config_changed = signature != self.config_signature
         if config_changed:
             self.config_signature = signature

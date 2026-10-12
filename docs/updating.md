@@ -115,6 +115,10 @@ make deploy DEVICE=john@192.168.10.196 ARGS="--component desktop"
 
 `tools/deploy-to-device.sh` prüft die Quellen, kopiert das Arbeitsverzeichnis (auch uncommittete und neue Dateien) nach `~/paimenos-deploy` auf dem Gerät und startet dort `tools/deploy.py`. Das Passwort für `sudo` wird im Terminal abgefragt; für unbeaufsichtigte Läufe kann `DEPLOY_SUDO_PASSWORD` gesetzt werden. Das Tastatur- und Menü-Verhalten lässt sich ohne Gerät mit `tests/test_menu_navigation.py` prüfen (benötigt PyQt5, läuft mit `QT_QPA_PLATFORM=offscreen`).
 
+### Test-VM (QEMU/KVM)
+
+`tools/vm.sh` legt eine wiederverwendbare Debian-13-VM an (`create`), startet sie mit sichtbarem Fenster (`start`), richtet PaimenOS darin ein (`install`, mit `PAIMENOS_PARENT_PIN`, `PAIMENOS_APPS` usw. ohne Rückfragen) und überträgt Änderungen (`deploy`). `snapshot NAME` und `reset NAME` sichern und stellen Zustände wieder her; `vm.sh` ohne Argument zeigt alle Befehle. Daten liegen in `~/VMs/paimenos`, SSH-Alias `paimenos-vm`, Eltern-Web auf `http://localhost:8080`.
+
 ## Auf dem Gerät aktualisieren
 
 Archiv aus einer vertrauenswürdigen Quelle kopieren und entpacken. Alle folgenden Befehle aus dem neuen Projektordner ausführen:

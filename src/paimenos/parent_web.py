@@ -21,6 +21,7 @@ import paimenos.parent as parents
 import paimenos.emulators as emulators
 from paimenos.emulator_install import install_request, InstallError
 import paimenos.controller_profiles as controllers
+from paimenos.pronunciation import default_pronunciation
 from paimenos.state import read_settings
 from paimenos.diagnostics import collect_diagnostics, diagnostics_text
 from paimenos.bluetooth import bluetooth_request, BluetoothError
@@ -333,7 +334,8 @@ def app_form(item, heading):
     target, arguments = parents.app_launch_fields(item)
     target = item.get('target', target)
     arguments = item.get('arguments', arguments)
-    body = render_template_string(_template('app-form.html'), item=item, heading=heading, target=target, arguments=arguments)
+    body = render_template_string(_template('app-form.html'), item=item, heading=heading, target=target, arguments=arguments,
+                                 default_pronunciation=default_pronunciation(item.get('title', '')))
     return render(body, heading, 'apps_page')
 
 
@@ -345,6 +347,8 @@ def submitted_app(item=None):
     if item and (item.get('type') == 'camera' or item.get('emulator')):
         values.update(target='', arguments='')
     values['category'] = request.form.get('category', 'auto')
+    # Alte Formulare ohne Feld lassen eine gespeicherte Aussprache unverändert.
+    values['pronunciation'] = request.form['pronunciation'] if 'pronunciation' in request.form else None
     values['reset_icon'] = request.form.get('reset_icon') == '1'
     return values
 
@@ -459,7 +463,7 @@ def settings_page():
     st = read_settings()
     if request.method == 'POST':
         try:
-            st = parents.save_preferences(request.form.get('pin', '').strip(), request.form.get('pin_confirm', '').strip(), request.form.get('bg_color', ''), request.form.get('category_tabs') == '1')
+            st = parents.save_preferences(request.form.get('pin', '').strip(), request.form.get('pin_confirm', '').strip(), request.form.get('bg_color', ''), request.form.get('category_tabs') == '1', request.form.get('speak_titles') == '1', request.form.get('speak_voice') or None)
         except ValueError as exc:
             flash(str(exc), 'error')
         else:
