@@ -19,7 +19,10 @@ start_installer() {
     # Erst signierte Datei-Variante (Secure Boot), dann die klassische.
     kexec -s -l "$kernel" --initrd="$initrd" --append="$append" 2>/dev/null ||
         kexec -l "$kernel" --initrd="$initrd" --append="$append" 2>/dev/null || return 1
-    systemctl kexec || kexec -e
+    # Direkt springen: Ein sauberer Shutdown (systemctl kexec) fragt live-boot nach dem Entfernen des Mediums,
+    # das der Installer gleich selbst braucht. Das Live-System liegt im RAM, ein sync genügt.
+    sync
+    kexec -e
 }
 
 install_entry() {
