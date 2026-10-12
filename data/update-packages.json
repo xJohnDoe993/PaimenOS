@@ -8,7 +8,10 @@
       "gstreamer1.0-plugins-good",
       "gstreamer1.0-libav",
       "qttranslations5-l10n",
-      "python3-venv"
+      "python3-venv",
+      "libspeechd2",
+      "speech-dispatcher",
+      "speech-dispatcher-espeak-ng"
     ]
   }
 }

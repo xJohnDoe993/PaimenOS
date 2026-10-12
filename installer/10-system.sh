@@ -31,6 +31,7 @@ if apt-get install -y \
     pipewire-pulse \
     wireplumber \
     alsa-utils python3-venv \
+    libspeechd2 speech-dispatcher speech-dispatcher-espeak-ng \
     firmware-linux-free bluez libspa-0.2-bluetooth \
     xserver-xorg \
     x11-xserver-utils unclutter-xfixes \
