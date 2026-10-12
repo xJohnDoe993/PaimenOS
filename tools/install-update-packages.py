@@ -123,6 +123,23 @@ def ensure_release(release, progress=print, run=subprocess.run,
         return missing
 
 
+def start_speech_install(release, settings=Path('/home/kids/.config/paimenos/settings.json'), run=subprocess.run):
+    """Piper auf Bestandsgeräten nachholen: nur wenn die Sprachausgabe an ist und Piper fehlt (Updates liefern nur Debian-Pakete)."""
+    try:
+        enabled = json.loads(settings.read_text(encoding='utf-8')).get('speak_titles') is True
+    except (OSError, ValueError, AttributeError):
+        return False
+    script = release / 'tools/install-paimenos-speech.py'
+    if not enabled or not script.is_file():
+        return False
+    if run(['/usr/bin/python3', '-I', str(script), '--check'], capture_output=True, check=False).returncode == 0:
+        return False
+    # Eigene Unit im Hintergrund: Der Download (rund 320 MB) darf Boot und Webbackend nicht aufhalten.
+    run(['/usr/bin/systemd-run', '--quiet', '--no-block', '--unit=paimenos-speech-install', '--property=Nice=15',
+         '/usr/bin/python3', '-I', str(script)], check=False)
+    return True
+
+
 def main():
     parser = argparse.ArgumentParser(description=t('Fehlende PaimenOS-Update-Abhängigkeiten installieren.'))
     parser.add_argument('--release', type=Path, default=Path('/usr/local/lib/paimenos/current'))
@@ -130,6 +147,7 @@ def main():
     if os.geteuid() != 0:
         parser.error(t('Bitte mit sudo ausführen.'))
     ensure_release(args.release)
+    start_speech_install(args.release)
 
 
 if __name__ == '__main__':

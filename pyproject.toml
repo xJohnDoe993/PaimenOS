@@ -1,5 +1,5 @@
 [tool.paimenos]
-version = "0.70.0"
+version = "0.70.1"
 python-source = "src"
 python-minimum = "3.11"
 
