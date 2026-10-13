@@ -111,6 +111,27 @@ class GuardTests(GuardFixture, unittest.TestCase):
             if process.poll() is None:
                 process.kill(); process.communicate(timeout=3)
 
+    def test_screen_time_counts_only_while_an_application_runs(self):
+        self.save(daily_limit_minutes=60)
+        class EndLoop(Exception):
+            pass
+        def run(ticks, lease):
+            try:
+                with patch.object(timer.time, 'sleep', side_effect=[None] * (len(ticks) - 1) + [EndLoop]), \
+                        patch.object(timer.time, 'monotonic', side_effect=[0] + ticks), \
+                        patch.object(timer.subprocess, 'Popen'):
+                    with self.assertRaises(EndLoop):
+                        timer.run_timer()
+            finally:
+                if lease is not None:
+                    lease.close()
+        self.assertFalse(screen_guard.app_active())
+        run([5, 12, 20], None)  # Menü oder Eltern-Bereich: nichts zählt.
+        self.assertEqual(json.loads(self.settings_file.read_text())['today_used_seconds'], 0)
+        run([5, 12, 20], screen_guard.ActiveAppLease())
+        self.assertEqual(json.loads(self.settings_file.read_text())['today_used_seconds'], 12)
+        self.assertFalse(screen_guard.app_active())
+
     def test_timer_leaves_active_parent_view_in_front_then_starts_lock_on_close(self):
         self.save(today_used_seconds=60)
         class EndLoop(Exception):

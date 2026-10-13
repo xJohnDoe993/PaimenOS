@@ -15,7 +15,7 @@ import socket
 from paimenos.images import (TaskSignals, submit_task, tuxpaint_command)
 from paimenos.diagnostics import collect_diagnostics, diagnostics_text, log_event
 from paimenos.state import read_settings, update_settings, atomic_json, app_with_current_title
-from paimenos.screen_guard import child_access_blocked, screen_time_expired, protected_view_active
+from paimenos.screen_guard import ActiveAppLease, child_access_blocked, screen_time_expired, protected_view_active
 from paimenos.categories import CATEGORIES, available_categories, filter_category
 from paimenos.controller import ControllerReader
 from paimenos.network_status import NetworkStatus
@@ -720,6 +720,7 @@ class PaimenOSMenu(QWidget):
             return
         self.return_window = return_window
         self.expected_exit_codes = {0}
+        self.release_app_lease()
         self.active_is_webapp = bool(url)
         self.overlay_proc = None
         try:
@@ -729,6 +730,9 @@ class PaimenOSMenu(QWidget):
             log_event(t('Anwendung'), "Start: " + os.path.basename(cmd[0]))
             self.active_process = subprocess.Popen(cmd, start_new_session=True, env=application_environment(),
                                                    stdout=self.application_log, stderr=self.application_log)
+            if not item.get('parent_area'):
+                # Aktive Bildschirmzeit: gezählt wird nur, solange diese Lease gehalten wird.
+                self.app_lease = ActiveAppLease()
         except Exception as exc:
             if getattr(self, "application_log", None):
                 self.application_log.close()
@@ -751,6 +755,7 @@ class PaimenOSMenu(QWidget):
         if self.overlay_proc and self.overlay_proc.poll() is None:
             self.overlay_proc.terminate()
         self.close_network_editor()
+        self.release_app_lease()
         code = self.active_process.returncode
         self.application_log.close()
         self.active_process = None
@@ -766,6 +771,12 @@ class PaimenOSMenu(QWidget):
                 QMessageBox.warning(target, "Webapp", t('Diese Webapp ist noch geöffnet oder wird gerade geschlossen.\nBitte kurz warten und erneut öffnen.'))
                 return
             QMessageBox.warning(target, t('Programmstart'), t('Das Programm wurde mit Fehlercode {value0} beendet.\nDetails stehen im Elternbereich unter Geräte-Diagnose.', value0=code))
+
+    def release_app_lease(self):
+        lease = getattr(self, 'app_lease', None)
+        self.app_lease = None
+        if lease is not None:
+            lease.close()
 
     def stop_for_shutdown(self):
         # KillMode=mixed sends SIGTERM only to this menu. Give the supervisor
