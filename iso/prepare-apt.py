@@ -56,15 +56,14 @@ def session_config(path, probe=can_connect, previous_config=None):
 OFFLINE_STATE = Path('/run/paimenos-offline')
 
 
-def offline_config(path, repo, state=OFFLINE_STATE, codename='trixie'):
-    """APT-Sitzung nur mit der signierten Offline-Quelle des Installationsmediums (ohne Netzwerk)."""
+def offline_config(path, repo, state=OFFLINE_STATE):
+    """APT-Sitzung nur mit der signierten, flachen Offline-Quelle des Installationsmediums (ohne Netzwerk)."""
     repo, state = Path(repo), Path(state)
     parts = state / 'sources.list.d'
     parts.mkdir(parents=True, exist_ok=True)
     (state / 'lists/partial').mkdir(parents=True, exist_ok=True)
     (parts / 'paimenos-offline.sources').write_text(
-        f'Types: deb\nURIs: file:{repo}\nSuites: {codename}\nComponents: main\n'
-        f'Signed-By: {repo}/paimenos-repo.gpg\n')
+        f'Types: deb\nURIs: file:{repo}\nSuites: ./\nSigned-By: {repo}/paimenos-repo.gpg\n')
     # Eigene Paketlisten, damit die Online-Listen des Systems unberührt bleiben.
     Path(path).write_text(f'Dir::Etc::sourcelist "/dev/null";\nDir::Etc::sourceparts "{parts}";\n'
                           f'Dir::State::lists "{state}/lists";\nAPT::Update::Error-Mode "any";\n')

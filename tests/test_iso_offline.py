@@ -46,5 +46,12 @@ class OfflinePackageTests(unittest.TestCase):
             self.assertIn('"' + package + '"', apps, package)
 
 
+class RepoLayoutTests(unittest.TestCase):
+    def test_repo_is_hidden_from_installer_apt_cdrom(self):
+        script = (ROOT / 'iso/build-offline-repo.sh').read_text()
+        self.assertIn('.aptignr', script)           # sonst bricht der Installer "Paketmanager konfigurieren" ab
+        self.assertNotIn('dists/$CODENAME', script)  # flaches Repo
+
+
 if __name__ == '__main__':
     unittest.main()

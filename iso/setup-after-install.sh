@@ -35,7 +35,7 @@ offline_ready() {
         mkdir -p "$MEDIUM_MOUNT"
         mount -o ro "$device" "$MEDIUM_MOUNT" || return 1
     fi
-    [[ -f "$MEDIUM_MOUNT/paimenos-repo/dists/trixie/InRelease" ]] || return 1
+    [[ -f "$MEDIUM_MOUNT/paimenos-repo/InRelease" ]] || return 1
     /usr/bin/python3 "$SOURCE/iso/prepare-apt.py" --offline-repo "$MEDIUM_MOUNT/paimenos-repo" --apt-config "$APT_SESSION_CONFIG" || return 1
     APT_CONFIG="$APT_SESSION_CONFIG" apt-get update || return 1
 }

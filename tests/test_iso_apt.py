@@ -27,6 +27,8 @@ class OfflineTests(unittest.TestCase):
             self.assertEqual(config.stat().st_mode & 0o777, 0o600)
             source = (root / 'state/sources.list.d/paimenos-offline.sources').read_text()
             self.assertIn('URIs: file:/run/paimenos-medium/paimenos-repo', source)
+            self.assertIn('Suites: ./', source)
+            self.assertNotIn('Components', source)  # flaches Repo: apt-cdrom des Installers darf kein dists/ finden
             self.assertIn('Signed-By: /run/paimenos-medium/paimenos-repo/paimenos-repo.gpg', source)
             self.assertNotIn('http', source)
             self.assertTrue((root / 'state/lists/partial').is_dir())
