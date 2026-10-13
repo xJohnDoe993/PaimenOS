@@ -247,22 +247,3 @@ class NativeLanguageTests(unittest.TestCase):
                 self.assertTrue(QLocale().name().startswith(language + '_'))
                 buttons = QDialogButtonBox(QDialogButtonBox.Cancel)
                 self.assertEqual(buttons.button(QDialogButtonBox.Cancel).text(), cancel)
-    def test_local_parent_dialog_translates_tabs_bonus_and_custom_app_names(self):
-        os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
-        from PyQt5.QtWidgets import QApplication, QCheckBox, QLabel, QPushButton
-        from paimenos import parent_ui
-        app = QApplication.instance() or QApplication([])
-        data = dict(state.DEFAULTS, pin='456789', daily_limit_minutes=30, today_used_seconds=65)
-        apps = [dict(id='test', type='webapp', title='My custom app', url='https://example.org/')]
-        with patch.object(parent_ui, 'read_settings', return_value=data), patch.object(parent, 'managed_apps', return_value=apps), patch.object(parent_ui, 'submit_task'):
-            for language in ('en', 'de'):
-                with patch.dict(os.environ, {'PAIMENOS_LANGUAGE': language}), self.subTest(language=language):
-                    i18n.setup_qt(app)
-                    dialog = parent_ui.ParentDialog()
-                    self.assertEqual(dialog.tabs.tabText(0), 'Overview' if language == 'en' else 'Übersicht')
-                    text = '\n'.join(widget.text() for kind in (QLabel, QPushButton, QCheckBox) for widget in dialog.findChildren(kind))
-                    self.assertIn('My custom app', text)
-                    self.assertIn('+15 min' if language == 'en' else '+15 Min.', text)
-                    if language == 'en':
-                        self.assertNotRegex(text, r'Elternbereich|Bildschirmzeit|Einstellungen|Min\.|Sek\.')
-                    dialog.reject()

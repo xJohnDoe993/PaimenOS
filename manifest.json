@@ -34,8 +34,6 @@
         "src/paimenos/menu_support.py",
         "src/paimenos/speech.py",
         "src/paimenos/video.py",
-        "src/paimenos/parent_ui.py",
-        "src/paimenos/parent_ui_system.py",
         "src/paimenos/status_overlay.py",
         "src/paimenos/close_overlay.py",
         "src/paimenos/browser.py",
@@ -59,8 +57,6 @@
       "files": [
         "src/paimenos/wifi.py",
         "src/paimenos/bluetooth.py",
-        "src/paimenos/wifi_ui.py",
-        "src/paimenos/bluetooth_ui.py",
         "src/paimenos/network_status.py"
       ]
     },

@@ -49,6 +49,22 @@ user_pref("screenshots.browser.component.enabled", false);
 '''
 
 
+# Der Eltern-Bereich am Gerät läuft in einem Profil, das nichts behält: Die Anmeldung (Cookie, 30 Minuten gültig)
+# darf das Schließen des Fensters nicht überleben, und die PIN darf nicht gespeichert werden.
+PARENT_PREFERENCES = '''user_pref("signon.rememberSignons", false);
+user_pref("signon.autofillForms", false);
+user_pref("signon.generation.enabled", false);
+user_pref("browser.formfill.enable", false);
+user_pref("browser.cache.disk.enable", false);
+user_pref("privacy.sanitize.sanitizeOnShutdown", true);
+user_pref("privacy.clearOnShutdown.cookies", true);
+user_pref("privacy.clearOnShutdown.cache", true);
+user_pref("privacy.clearOnShutdown.sessions", true);
+user_pref("privacy.clearOnShutdown.history", true);
+user_pref("privacy.clearOnShutdown.offlineApps", true);
+'''
+
+
 def write_text(path, text):
     # Avoid rewriting and fsyncing three unchanged files on every launch.
     if read_text(path) == text:
@@ -74,7 +90,7 @@ def read_text(path):
         return ''
 
 
-def prepare_profile(profile_dir, template):
+def prepare_profile(profile_dir, template, extra_preferences=''):
     os.makedirs(profile_dir, exist_ok=True)
     user_path = os.path.join(profile_dir, 'user.js')
     current = read_text(template) if os.path.isfile(template) else read_text(user_path)
@@ -86,7 +102,7 @@ def prepare_profile(profile_dir, template):
         'user_pref("intl.locale.requested", ' + json.dumps(browser_locale()) + ');\n'
         'user_pref("intl.accept_languages", ' + json.dumps(languages) + ');\n')
     write_text(user_path, current.rstrip() + '\n' + BEGIN + '\n'
-               + PREFERENCES + locale_preferences + hardware_profile.firefox_preferences() + END + '\n')
+               + PREFERENCES + locale_preferences + hardware_profile.firefox_preferences() + extra_preferences + END + '\n')
     chrome_path = os.path.join(profile_dir, 'chrome', 'userChrome.css')
     current = read_text(chrome_path)
     if CHROME_IMPORT not in current:
