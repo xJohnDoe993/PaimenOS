@@ -69,6 +69,8 @@ if [[ "$PAIMENOS_LANGUAGE" == en ]]; then
     for icon in pbs-kids learnenglish-kids nasa-space-place blockly-games scratch-web; do
         install_repo_file "assets/icons/${icon}.svg" "${ICONS_DIR}/${icon}.svg"
     done
+elif [[ "${PAIMENOS_OFFLINE:-0}" == 1 ]]; then
+    echo "$(paimenos_text 'Offline-Modus: Logos der Webseiten werden nicht geladen.')"
 else
 webapp_icon_download "https://licensing.wdr-mediagroup.com/wp-content/uploads/2021/12/die_maus_logo-1200x414.png" "maus"
 webapp_icon_download "https://www.wdrmaus.de/elefantenseite/codebase/eltern2021/images/elefant_header.svg" "elefant"

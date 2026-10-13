@@ -32,7 +32,7 @@ mkdir -p "${ICONS_DIR}"
 mkdir -p "${KIDS_HOME}/.mozilla/paimenos-webapps"
 mkdir -p "${KIDS_HOME}/.config/gtk-3.0"
 
-if [[ ! -d "/usr/share/icons/Bibata-Original-Ice" ]]; then
+if [[ ! -d "/usr/share/icons/Bibata-Original-Ice" && "${PAIMENOS_OFFLINE:-0}" != 1 ]]; then
     echo "$(paimenos_text 'Lade Bibata-Original-Ice Cursor herunter ...')"
     wget -q https://github.com/ful1e5/Bibata_Cursor/releases/download/v2.0.7/Bibata-Original-Ice.tar.xz -O /tmp/Bibata-Original-Ice.tar.xz  || echo "$(paimenos_text 'Download fehlgeschlagen, fahre fort...')"
     if [[ -f /tmp/Bibata-Original-Ice.tar.xz ]]; then

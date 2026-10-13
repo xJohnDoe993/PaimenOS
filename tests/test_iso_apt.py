@@ -14,6 +14,26 @@ module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 
 
+class OfflineTests(unittest.TestCase):
+    def test_offline_config_uses_only_the_signed_medium_repo(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config = root / 'apt.conf'
+            module.offline_config(config, '/run/paimenos-medium/paimenos-repo', state=root / 'state')
+            text = config.read_text()
+            self.assertIn('Dir::Etc::sourcelist "/dev/null";', text)
+            self.assertIn(f'Dir::Etc::sourceparts "{root}/state/sources.list.d";', text)
+            self.assertIn(f'Dir::State::lists "{root}/state/lists";', text)
+            self.assertEqual(config.stat().st_mode & 0o777, 0o600)
+            source = (root / 'state/sources.list.d/paimenos-offline.sources').read_text()
+            self.assertIn('URIs: file:/run/paimenos-medium/paimenos-repo', source)
+            self.assertIn('Suites: ./', source)
+            self.assertNotIn('Components', source)  # flaches Repo: apt-cdrom des Installers darf kein dists/ finden
+            self.assertIn('Signed-By: /run/paimenos-medium/paimenos-repo/paimenos-repo.gpg', source)
+            self.assertNotIn('http', source)
+            self.assertTrue((root / 'state/lists/partial').is_dir())
+
+
 class AptTests(unittest.TestCase):
     def test_cdrom_only_system_gets_main_and_security_and_is_repeatable(self):
         with tempfile.TemporaryDirectory() as directory:

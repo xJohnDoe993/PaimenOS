@@ -59,7 +59,8 @@ class Migration:
     def prepare(self):
         if self.journal.exists():
             raise ValueError(t('Unvollständige WLAN-Boot-Übernahme; Wiederherstellung beim Neustart erforderlich.'))
-        if self.command('getent', 'ahostsv4', 'deb.debian.org', required=False).returncode:
+        # Beim Offline-Setup (PAIMENOS_OFFLINE=1) gibt es kein Internet, das sich prüfen ließe.
+        if os.environ.get('PAIMENOS_OFFLINE') != '1' and self.command('getent', 'ahostsv4', 'deb.debian.org', required=False).returncode:
             raise ValueError(t('Netzwerk/DNS funktioniert vor der WLAN-Vorbereitung nicht.'))
         devices = self.command('nmcli', '--terse', '--escape', 'no', '--fields', 'DEVICE,TYPE', 'device', 'status').stdout
         legacy = []

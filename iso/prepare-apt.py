@@ -53,6 +53,23 @@ def session_config(path, probe=can_connect, previous_config=None):
     Path(path).chmod(0o600)
 
 
+OFFLINE_STATE = Path('/run/paimenos-offline')
+
+
+def offline_config(path, repo, state=OFFLINE_STATE):
+    """APT-Sitzung nur mit der signierten, flachen Offline-Quelle des Installationsmediums (ohne Netzwerk)."""
+    repo, state = Path(repo), Path(state)
+    parts = state / 'sources.list.d'
+    parts.mkdir(parents=True, exist_ok=True)
+    (state / 'lists/partial').mkdir(parents=True, exist_ok=True)
+    (parts / 'paimenos-offline.sources').write_text(
+        f'Types: deb\nURIs: file:{repo}\nSuites: ./\nSigned-By: {repo}/paimenos-repo.gpg\n')
+    # Eigene Paketlisten, damit die Online-Listen des Systems unberührt bleiben.
+    Path(path).write_text(f'Dir::Etc::sourcelist "/dev/null";\nDir::Etc::sourceparts "{parts}";\n'
+                          f'Dir::State::lists "{state}/lists";\nAPT::Update::Error-Mode "any";\n')
+    Path(path).chmod(0o600)
+
+
 def diagnose(run=subprocess.run, probe=can_connect):
     """Read-only routing and TCP diagnostics; no service or DNS changes."""
     for command in (['ip', '-4', '-brief', 'address'], ['ip', '-4', 'route'],
@@ -123,6 +140,7 @@ def configure(root=Path('/')):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--apt-config', type=Path)
+    parser.add_argument('--offline-repo', type=Path, help=t('Offline-Paketquelle des Installationsmediums statt Internet verwenden'))
     parser.add_argument('--diagnose', action='store_true')
     args = parser.parse_args()
     if args.diagnose:
@@ -131,5 +149,7 @@ if __name__ == '__main__':
     if os.geteuid() != 0:
         raise SystemExit(t('Bitte mit sudo starten.'))
     configure()
-    if args.apt_config:
+    if args.apt_config and args.offline_repo:
+        offline_config(args.apt_config, args.offline_repo)
+    elif args.apt_config:
         session_config(args.apt_config, previous_config=os.environ.get('APT_CONFIG'))

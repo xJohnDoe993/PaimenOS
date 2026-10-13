@@ -4,7 +4,9 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import os
 import unittest
+import unittest.mock
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('stage_wifi', ROOT/'tools/stage-wifi.py')
@@ -45,6 +47,15 @@ class StagingTests(unittest.TestCase):
         self.assertIn('autoconnect=true', profile.read_text())
         self.assertEqual(profile.stat().st_mode & 0o777, 0o600)
         self.assertEqual(self.migration.state.stat().st_mode & 0o777, 0o700)
+    def test_offline_setup_does_not_require_a_working_connection(self):
+        def no_dns(args, **kwargs):
+            if args[0] == 'getent': return subprocess.CompletedProcess(args, 2, stdout='', stderr='')
+            return self.simulate(args, **kwargs)
+        migration = stage.Migration(self.root, no_dns)
+        with self.assertRaises(ValueError):  # online ohne DNS: wie bisher abgelehnt
+            migration.prepare()
+        with unittest.mock.patch.dict(os.environ, {'PAIMENOS_OFFLINE': '1'}):
+            self.assertTrue(migration.prepare())
     def test_boot_applies_once_without_nm_activation(self):
         self.prepare(); self.calls.clear(); self.migration.apply()
         self.assertNotIn('\niface wlan0', self.config.read_text())
