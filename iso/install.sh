@@ -361,7 +361,7 @@ main() {
         exit 0
     fi
     cleanup_mounts
-    whiptail --title "$TITLE" --msgbox "$(paimenos_text 'Die Installation ist fehlgeschlagen. Das Protokoll steht in {value0}. Du kannst es im Live-Menü erneut versuchen.' "$LOG")" 11 64
+    whiptail --title "$TITLE" --msgbox "$(paimenos_text 'Die Installation ist fehlgeschlagen. Das Protokoll steht in {value0}. Du kannst es im Live-Menü erneut versuchen.\n\nLetzte Meldungen:\n{value1}' "$LOG" "$(tail -n 8 "$LOG" 2>/dev/null | cut -c1-76)")" 22 80
     exit 1
 }
 

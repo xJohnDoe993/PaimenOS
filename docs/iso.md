@@ -8,8 +8,7 @@ verfügbar; der Workflow veröffentlicht keinen Release.
 ## Installation
 
 1. ISO auf einen USB-Stick schreiben und davon booten.
-2. Im Bootmenü **PaimenOS installieren** wählen (**PaimenOS Live-System testen** startet
-   nur das Live-System). Der PaimenOS-Installer (`iso/install.sh`) fragt der Reihe nach:
+2. Im Bootmenü **PaimenOS installieren** wählen . Der PaimenOS-Installer (`iso/install.sh`) fragt der Reihe nach:
    Sprache, Tastatur-Layout, Zeitzone, WLAN (ja/nein), Zielplatte und ein
    Administrator-Konto (Name und Passwort, nicht `kids`). Die **ganze Platte** wird benutzt
    und gelöscht; eine eigene Partitionierung gibt es nicht.
@@ -43,11 +42,12 @@ Unter Debian 13 gilt `/etc/locale.conf` vor einem älteren Eintrag in
 
 BIOS und UEFI nutzen dasselbe GRUB-Menü (`iso/grub/`, von `iso/build.sh` über
 `config/bootloaders/grub-pc` in live-build eingespielt, statt der Vorlage von
-Debian). Es enthält nur **PaimenOS installieren**, **PaimenOS Live-System testen**
-und bei UEFI die Firmware-Einstellungen. Beide Einträge starten dasselbe Live-System;
-„installieren“ übergibt `paimenos.install`, worauf das Live-Menü den Installer
-direkt öffnet. Der Debian-Installer ist nicht mehr auf der ISO. Failsafe, Memtest und
-Prüfsummen entfallen. Das Logo steht in
+Debian). Es enthält nur **PaimenOS installieren** und bei UEFI die
+Firmware-Einstellungen. Der Eintrag startet das Live-System mit `paimenos.install`, worauf das
+Live-Menü den Installer direkt öffnet; bricht man ihn ab, bleibt das Live-Menü (WLAN, Konsole,
+Neustart, Ausschalten). Einen reinen Live-Test gibt es nicht, da das Live-System keine
+Kinderoberfläche enthält. Der Debian-Installer ist nicht mehr auf der ISO. Failsafe, Memtest
+und Prüfsummen entfallen. Das Logo steht in
 `iso/grub/splash.png` (erzeugt mit `tools/make-grub-splash.py`), die Farben in
 `iso/grub/live-theme/theme.txt`. Syslinux wird nicht mehr verwendet.
 

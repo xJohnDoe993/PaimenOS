@@ -1416,5 +1416,5 @@
   "ACHTUNG: Alles auf dieser Festplatte wird gelöscht:\\n\\n{value0}\\n\\nPaimenOS benutzt die ganze Platte. Jetzt installieren?": "WARNING: Everything on this disk will be erased:\\n\\n{value0}\\n\\nPaimenOS uses the whole disk. Install now?",
   "Die Grundinstallation ist fertig. Das PaimenOS-Setup startet jetzt ...": "The base installation is complete. The PaimenOS setup starts now ...",
   "Die Grundinstallation ist fertig. Das Gerät startet jetzt neu und setzt die Einrichtung fort. Den USB-Stick stecken lassen und beim Start nicht davon booten.": "The base installation is complete. The device now restarts and continues the setup. Leave the USB stick plugged in and do not boot from it.",
-  "Die Installation ist fehlgeschlagen. Das Protokoll steht in {value0}. Du kannst es im Live-Menü erneut versuchen.": "The installation failed. The log is in {value0}. You can try again from the live menu."
+  "Die Installation ist fehlgeschlagen. Das Protokoll steht in {value0}. Du kannst es im Live-Menü erneut versuchen.\\n\\nLetzte Meldungen:\\n{value1}": "The installation failed. The log is in {value0}. You can try again from the live menu.\\n\\nLast messages:\\n{value1}"
 }
