@@ -3,10 +3,9 @@ import fcntl
 import os
 import subprocess
 from pathlib import Path
+from paimenos.flatpak_store import valid_app_id
 
 MANAGED_FILE = Path('/var/lib/paimenos/flatpak-apps.list')
-ALLOWED = {'org.luanti.luanti', 'org.kde.gcompris', 'net.supertuxkart.SuperTuxKart',
-           'org.gimp.GIMP', 'org.libreoffice.LibreOffice'}
 
 
 def main():
@@ -17,7 +16,8 @@ def main():
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             return 0
-        apps = sorted(set(MANAGED_FILE.read_text().splitlines()) & ALLOWED)
+        # Nur gültige App-IDs aus der root-eigenen Liste (Setup und Flatpak-Seite im Webbereich).
+        apps = sorted({line.strip() for line in MANAGED_FILE.read_text().splitlines() if valid_app_id(line.strip())})
         failed = False
         for app in apps:
             ref = app + '//stable'
