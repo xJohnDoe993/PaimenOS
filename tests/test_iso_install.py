@@ -1,6 +1,7 @@
 """Reine Funktionen des ISO-Installers (iso/install.sh); es wird nichts partitioniert oder gemountet."""
 from pathlib import Path
 import subprocess
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -36,9 +37,23 @@ class InstallerFunctionTests(unittest.TestCase):
         code, out, _ = shell('filter_disks /dev/sdb', lines)
         self.assertEqual(out.splitlines(), [f'/dev/sda|{500 * GB}|Samsung SSD', f'/dev/nvme0n1|{256 * GB}|?'])
 
-    def test_disk_filter_ignores_garbage_lines(self):
-        _, out, _ = shell('filter_disks none', 'kaputt; touch /tmp/pwned\n')
-        self.assertEqual(out, '')
+    def test_disk_filter_never_executes_device_strings(self):
+        with tempfile.TemporaryDirectory() as folder:
+            marker = Path(folder) / 'pwned'
+            line = f'NAME="/dev/sda" SIZE="{64 * GB}" TYPE="disk" MODEL="$(touch {marker})`touch {marker}`"'
+            _, out, _ = shell('filter_disks none', line + '\nkaputt; touch ' + str(marker) + '\n')
+            self.assertFalse(marker.exists())
+            self.assertIn('/dev/sda|', out)
+
+    def test_lsblk_is_called_with_full_paths(self):
+        # Ohne -p liefert lsblk "vda" statt "/dev/vda"; dann würde wipefs/sfdisk auf einen falschen Pfad laufen.
+        with tempfile.TemporaryDirectory() as folder:
+            fake = Path(folder) / 'lsblk'
+            fake.write_text('#!/bin/bash\n[[ " $* " == *" -dnbPp "* ]] || exit 3\n'
+                            f'echo \'NAME="/dev/vda" SIZE="{32 * GB}" TYPE="disk" MODEL=""\'\n')
+            fake.chmod(0o755)
+            code, out, _ = shell(f'PATH={folder}:$PATH; lsblk_disks | filter_disks none')
+        self.assertEqual(out.strip(), f'/dev/vda|{32 * GB}|?')
 
     def test_fstab_for_efi_and_bios(self):
         self.assertEqual(shell('fstab_text AAA BBB')[1].splitlines()[1:],

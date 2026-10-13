@@ -1402,7 +1402,6 @@
   "In welcher Weltregion liegt dein Gerät?": "In which part of the world is your device?",
   "Welche Zeitzone?": "Which time zone?",
   "Es wurde keine geeignete Festplatte gefunden (mindestens 16 GB, nicht der USB-Stick).": "No suitable disk was found (at least 16 GB, not the USB stick).",
-  "Auf welche Festplatte soll PaimenOS?\\n\\nDie ganze Platte wird benutzt. Eine Aufteilung in Partitionen ist nicht nötig.": "Which disk should PaimenOS be installed on?\\n\\nThe whole disk is used. No partitioning is needed.",
   "Name des Administrator-Kontos für Wartung und Updates (nicht das Konto der Kinder):": "Name of the administrator account for maintenance and updates (not the children’s account):",
   "Ungültiger Name. Erlaubt sind Kleinbuchstaben, Ziffern, - und _; er muss mit einem Buchstaben beginnen. kids, root und live sind nicht erlaubt.": "Invalid name. Lowercase letters, digits, - and _ are allowed; it must start with a letter. kids, root and live are not allowed.",
   "Passwort für dieses Konto (mindestens 6 Zeichen):": "Password for this account (at least 6 characters):",
@@ -1416,5 +1415,7 @@
   "ACHTUNG: Alles auf dieser Festplatte wird gelöscht:\\n\\n{value0}\\n\\nPaimenOS benutzt die ganze Platte. Jetzt installieren?": "WARNING: Everything on this disk will be erased:\\n\\n{value0}\\n\\nPaimenOS uses the whole disk. Install now?",
   "Die Grundinstallation ist fertig. Das PaimenOS-Setup startet jetzt ...": "The base installation is complete. The PaimenOS setup starts now ...",
   "Die Grundinstallation ist fertig. Das Gerät startet jetzt neu und setzt die Einrichtung fort. Den USB-Stick stecken lassen und beim Start nicht davon booten.": "The base installation is complete. The device now restarts and continues the setup. Leave the USB stick plugged in and do not boot from it.",
-  "Die Installation ist fehlgeschlagen. Das Protokoll steht in {value0}. Du kannst es im Live-Menü erneut versuchen.\\n\\nLetzte Meldungen:\\n{value1}": "The installation failed. The log is in {value0}. You can try again from the live menu.\\n\\nLast messages:\\n{value1}"
+  "Die Installation ist fehlgeschlagen. Das Protokoll steht in {value0}. Du kannst es im Live-Menü erneut versuchen.\\n\\nLetzte Meldungen:\\n{value1}": "The installation failed. The log is in {value0}. You can try again from the live menu.\\n\\nLast messages:\\n{value1}",
+  "Auf welche Festplatte soll PaimenOS?\\nDie ganze Platte wird benutzt, eine Aufteilung ist nicht nötig.": "Which disk should PaimenOS be installed on?\\nThe whole disk is used, no partitioning is needed.",
+  "Festplatte": "Disk"
 }
