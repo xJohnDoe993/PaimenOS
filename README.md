@@ -45,7 +45,7 @@ Anschließend selbst neu starten. Weitere Hinweise und Rückkehr zu einem bisher
 
 ## Eigenes Debian-ISO
 
-**Actions → Build PaimenOS ISO → Run workflow** baut ein Debian-13-Hybrid-ISO mit Grundsystem und Installer. Das interaktive PaimenOS-Setup startet nach der Installation beim ersten Neustart. ISO und SHA-256 stehen anschließend als Workflow-Artefakt bereit. Die Eltern-PIN wird auf dem Gerät festgelegt. Anleitung und Teststatus: [docs/iso.md](docs/iso.md).
+**Actions → Build PaimenOS ISO → Run workflow** baut ein Debian-13-Hybrid-ISO mit Grundsystem und PaimenOS-Installer (Sprache, Tastatur, Zeitzone, WLAN, Platte). Das interaktive PaimenOS-Setup startet nach der Installation beim ersten Neustart. ISO und SHA-256 stehen anschließend als Workflow-Artefakt bereit. Die Eltern-PIN wird auf dem Gerät festgelegt. Anleitung und Teststatus: [docs/iso.md](docs/iso.md).
 
 ## Code aktualisieren
 

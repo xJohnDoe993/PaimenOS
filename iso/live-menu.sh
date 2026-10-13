@@ -7,33 +7,16 @@ source "$REPO_DIR/installer/language.sh"
 MEDIUM=${PAIMENOS_LIVE_MEDIUM:-/run/live/medium}
 TITLE="$(paimenos_text 'PaimenOS Live-System')"
 
-# Debian-Installer vom Boot-Medium laden (grafisch, sonst Text) und per kexec starten.
-start_installer() {
-    local dir kernel initrd
-    for dir in "$MEDIUM/install/gtk" "$MEDIUM/install"; do
-        [[ -f $dir/vmlinuz && -f $dir/initrd.gz ]] && { kernel=$dir/vmlinuz; initrd=$dir/initrd.gz; break; }
-    done
-    [[ -n ${kernel:-} ]] || return 1
-    command -v kexec >/dev/null || return 1
-    local append='preseed/file=/cdrom/preseed.cfg --- quiet'
-    # Erst signierte Datei-Variante (Secure Boot), dann die klassische.
-    kexec -s -l "$kernel" --initrd="$initrd" --append="$append" 2>/dev/null ||
-        kexec -l "$kernel" --initrd="$initrd" --append="$append" 2>/dev/null || return 1
-    # Direkt springen: Ein sauberer Shutdown (systemctl kexec) fragt live-boot nach dem Entfernen des Mediums,
-    # das der Installer gleich selbst braucht. Das Live-System liegt im RAM, ein sync genügt.
-    sync
-    kexec -e
+# Der PaimenOS-Installer (iso/install.sh) ersetzt den Debian-Installer.
+install_entry() {
+    /usr/local/sbin/paimenos-install || true
 }
 
-install_entry() {
-    whiptail --title "$TITLE" --yesno "$(paimenos_text 'Der Installer richtet PaimenOS auf diesem Gerät ein. Die Zielplatte wählst du im nächsten Schritt; ihr Inhalt wird dabei gelöscht.\n\nJetzt installieren?')" 14 64 || return 0
-    clear
-    printf '%s\n' "$(paimenos_text 'Installer wird gestartet ...')"
-    start_installer && return 0
-    if whiptail --title "$TITLE" --yesno "$(paimenos_text 'Der Installer konnte nicht direkt gestartet werden.\n\nBitte jetzt neu starten und im Bootmenü „PaimenOS installieren (grafisch)“ wählen. Jetzt neu starten?')" 14 64; then
-        systemctl reboot
-    fi
-}
+# Der Bootmenü-Eintrag "PaimenOS installieren" startet den Installer direkt.
+if grep -qw paimenos.install /proc/cmdline && [[ ! -e /run/paimenos-install-offered ]]; then
+    touch /run/paimenos-install-offered
+    install_entry
+fi
 
 while :; do
     choice=$(whiptail --title "$TITLE" --notags --default-item install \
