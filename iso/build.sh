@@ -9,14 +9,16 @@ BUILD=${PAIMENOS_BUILD_DIR:-/var/tmp/paimenos-live}
 mkdir -p "$BUILD" "$ROOT/dist/iso"
 cd "$BUILD"
 lb config --mode debian --distribution trixie --architectures amd64 \
-    --binary-images iso-hybrid --bootloaders 'syslinux grub-efi' \
+    --binary-images iso-hybrid --bootloaders 'grub-pc grub-efi' \
     --archive-areas 'main contrib non-free non-free-firmware' \
     --debian-installer live --debian-installer-gui true \
     --debian-installer-preseedfile "" \
     --bootappend-install 'preseed/file=/cdrom/preseed.cfg' \
     --bootappend-live 'boot=live components username=live hostname=paimenos locales=de_DE.UTF-8 keyboard-layouts=de timezone=Europe/Berlin live-config.nocomponents=sudo quiet splash' \
     --iso-application PaimenOS --iso-volume PAIMENOS --iso-publisher PaimenOS
-mkdir -p config/includes.chroot/opt/paimenos-source config/hooks/live config/package-lists config/includes.binary
+mkdir -p config/includes.chroot/opt/paimenos-source config/hooks/live config/package-lists config/includes.binary config/bootloaders
+# Eigenes GRUB-Menü und Logo: überschreibt die live-build-Vorlage (gilt für BIOS und UEFI).
+cp -a "$ROOT/iso/grub" config/bootloaders/grub-pc
 # Installer paths refer to the installation medium, not the build container.
 install -m 0644 "$ROOT/iso/preseed.cfg" config/includes.binary/preseed.cfg
 # Tracked source only: no credentials, git history or previous build output.

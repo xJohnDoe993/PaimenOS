@@ -1360,7 +1360,7 @@
   "PaimenOS Live-System": "PaimenOS live system",
   "Der Installer richtet PaimenOS auf diesem Gerät ein. Die Zielplatte wählst du im nächsten Schritt; ihr Inhalt wird dabei gelöscht.\\n\\nJetzt installieren?": "The installer sets up PaimenOS on this device. You choose the target disk in the next step; its contents will be erased.\\n\\nInstall now?",
   "Installer wird gestartet ...": "Starting the installer ...",
-  "Der Installer konnte nicht direkt gestartet werden.\\n\\nBitte jetzt neu starten und im Bootmenü „Graphical Install“ oder „Install“ wählen. Jetzt neu starten?": "The installer could not be started directly.\\n\\nPlease restart now and choose “Graphical Install” or “Install” in the boot menu. Restart now?",
+  "Der Installer konnte nicht direkt gestartet werden.\\n\\nBitte jetzt neu starten und im Bootmenü „PaimenOS installieren (grafisch)“ wählen. Jetzt neu starten?": "The installer could not be started directly.\\n\\nPlease restart now and choose “PaimenOS installieren (grafisch)” in the boot menu. Restart now?",
   "Willkommen bei PaimenOS. Was möchtest du tun?": "Welcome to PaimenOS. What would you like to do?",
   "PaimenOS installieren": "Install PaimenOS",
   "WLAN/Netzwerk einrichten": "Set up Wi-Fi/network",
