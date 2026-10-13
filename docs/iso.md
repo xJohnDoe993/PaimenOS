@@ -28,7 +28,7 @@ Unter Debian 13 gilt `/etc/locale.conf` vor einem älteren Eintrag in
 ## Offline-Installation
 
 Die ISO enthält neben dem Debian-Grundsystem eine signierte Offline-Paketquelle
-(`/paimenos-repo`, rund 0,9 GB): alle Debian-Pakete des PaimenOS-Kerns
+(`/paimenos-repo`, rund 0,9 GB; berechnet relativ zu einem minimalen Debian-Grundsystem, damit nichts fehlt, was der Installer aus dem Live-System entfernt): alle Debian-Pakete des PaimenOS-Kerns
 (Kinderoberfläche, Eltern-Webbereich, Firefox, Controller, WLAN, Energiesparen,
 Firmware) plus eine kleine App-Auswahl (Tux Paint, Geany, Tux Math, SuperTux).
 Die Liste steht in `installer/offline-packages.txt`; ein Test hält sie mit
@@ -40,6 +40,11 @@ Die Liste steht in `installer/offline-packages.txt`; ein Test hält sie mit
   `PAIMENOS`) ein und installiert daraus (`PAIMENOS_OFFLINE=1`). **Der USB-Stick
   muss bis zum Ende des Setups stecken bleiben.** Beim Neustart nach der
   Debian-Installation also nicht entfernen.
+- **Webapps** (KiKA, Die Maus usw.) sind nach dem Setup vorhanden, das Kinder-Menü blendet
+  sie aber ohne Internet aus und zeigt sie, sobald eine Verbindung besteht.
+- **Prüfungen ohne Netz:** DNS-, WLAN- und APT-Prüfungen des Setups, die ein funktionierendes
+  Internet voraussetzen, entfallen mit `PAIMENOS_OFFLINE=1`. Die Familien-DNS-Konfiguration
+  wird trotzdem geschrieben und aktiviert.
 - **Im Offline-Modus entfallen:** Emulatoren, Flathub-Apps, die übrigen Apps,
   Sprachausgabe (Piper) und die heruntergeladenen Webseiten-Logos. Alles lässt sich
   später mit Internet nachinstallieren (Eltern-Bereich bzw.
