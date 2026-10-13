@@ -384,6 +384,19 @@ class WidgetGuardTests(GuardFixture, unittest.TestCase):
         with patch.object(menu.socket, 'create_connection'):
             self.assertTrue(menu.parent_area_reachable())
 
+    def test_network_editor_closes_together_with_the_parent_area(self):
+        window = self.child_menu()
+        editor = MagicMock(); editor.poll.return_value = None
+        window.network_editor = editor
+        with patch.object(menu.QTimer, 'singleShot') as later:
+            window.close_network_editor()
+        editor.terminate.assert_called_once()
+        self.assertEqual(later.call_args.args[0], 2000)
+        later.call_args.args[1]()  # reagiert der Editor nicht auf SIGTERM, wird er beendet
+        editor.kill.assert_called_once()
+        self.assertIsNone(window.network_editor)
+        window.close_network_editor()  # ohne Editor: nichts passiert
+
     def test_network_editor_request_opens_the_editor_once_and_not_for_a_blocked_child(self):
         window = self.child_menu()
         request = Path(menu.STATE_DIR) / 'paimenos-menu.network-editor'

@@ -635,6 +635,15 @@ class PaimenOSMenu(QWidget):
         except OSError as exc:
             log_event(t('Anwendung'), str(exc))
 
+    def close_network_editor(self):
+        """Der Netzwerkeditor gehört zum Eltern-Bereich: Er bleibt nicht über dem Kinder-Menü stehen."""
+        editor = getattr(self, "network_editor", None)
+        if editor is not None and editor.poll() is None:
+            editor.terminate()
+            # nm-connection-editor ignoriert SIGTERM gelegentlich: nach kurzer Frist erzwingen.
+            QTimer.singleShot(2000, lambda: editor.poll() is None and editor.kill())
+        self.network_editor = None
+
     def hide_child_views(self):
         self.time_blocked = True
         browser = getattr(self, 'camera_browser', None)
@@ -741,6 +750,7 @@ class PaimenOSMenu(QWidget):
         self.process_timer.deleteLater()
         if self.overlay_proc and self.overlay_proc.poll() is None:
             self.overlay_proc.terminate()
+        self.close_network_editor()
         code = self.active_process.returncode
         self.application_log.close()
         self.active_process = None

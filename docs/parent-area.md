@@ -27,7 +27,9 @@ vollständig (außer den Sperrdateien), und Firefox speichert weder Passwörter 
 
 Schul- und Firmennetze sowie VPN richtet der Netzwerkeditor (`nm-connection-editor`) ein. Die WLAN-Seite hat dafür
 den Button **Netzwerkeditor am Laptop öffnen**: Die Seite legt die Anfragedatei `paimenos-menu.network-editor` im
-Statusordner an, das Kinder-Menü (das den Bildschirm kennt) öffnet den Editor als eigenes Fenster über dem Browser.
+Statusordner an, das Kinder-Menü (das den Bildschirm kennt) öffnet den Editor als eigenes Fenster über dem Browser. Beim Verlassen des
+Eltern-Bereichs beendet das Menü den Editor wieder (erst SIGTERM, nach zwei Sekunden SIGKILL), er bleibt nie über dem
+Kinder-Menü stehen.
 
 ## Grenzen
 
