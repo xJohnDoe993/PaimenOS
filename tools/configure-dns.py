@@ -105,6 +105,22 @@ class DNSSetup:
             raise ValueError(t('DNS nach Paketinstallation weiterhin defekt. Netzwerkverbindung prüfen; das vorherige resolv.conf wurde wiederhergestellt.'))
         print(t('Hinweis: DNS-Übernahme durch das Paket fehlgeschlagen; vorherige Namensauflösung wiederhergestellt.'))
 
+    # Offline-Setup (PAIMENOS_OFFLINE=1): Ohne Netzwerk lässt sich DNS nicht prüfen. Die Konfiguration
+    # wird nur geschrieben und aktiviert; die Verbindungsprüfung der Online-Wege entfällt.
+    def prepare_offline(self):
+        self.write(self.state, json.dumps({'resolv': self.snapshot(self.resolv)}), 0o600)
+
+    def recover_offline(self):
+        self.command('systemctl', 'restart', 'systemd-resolved.service')
+
+    def family_offline(self, source):
+        self.write(self.family, source.read_text())
+        self.bootstrap.unlink(missing_ok=True)
+        self.command('systemctl', 'enable', 'systemd-resolved.service')
+        self.command('systemctl', 'restart', 'systemd-resolved.service')
+        # Der Stub-Resolver entsteht beim Start des Dienstes; der Link gilt dann auch nach dem Neustart.
+        self.restore(self.resolv, {'link': '/run/systemd/resolve/stub-resolv.conf'})
+
     def configure_family(self, source):
         if not self.working():
             raise ValueError(t('DNS ist vor der Familien-DNS-Einrichtung bereits defekt. Erst die Verbindung reparieren.'))
@@ -148,11 +164,12 @@ def main():
             if args.source is None: parser.error(t('DNS-Konfigurationsdatei fehlt.'))
             setup.write(setup.family, args.source.read_text())
         return
-    if args.action == 'prepare': setup.prepare()
-    elif args.action == 'recover': setup.recover()
+    offline = os.environ.get('PAIMENOS_OFFLINE') == '1'
+    if args.action == 'prepare': setup.prepare_offline() if offline else setup.prepare()
+    elif args.action == 'recover': setup.recover_offline() if offline else setup.recover()
     else:
         if args.source is None: parser.error(t('DNS-Konfigurationsdatei fehlt.'))
-        setup.configure_family(args.source)
+        setup.family_offline(args.source) if offline else setup.configure_family(args.source)
 
 
 if __name__ == '__main__':

@@ -52,6 +52,15 @@ class DNSTests(unittest.TestCase):
         self.assertEqual(self.setup.resolv.read_text(), 'nameserver 192.168.10.1\n')
         self.assertEqual(self.setup.family.read_text(), '[Resolve]\nDNS=192.168.10.1\n')
         self.assertEqual(self.setup.bootstrap.read_text(), previous_bootstrap)
+    def test_offline_setup_writes_family_dns_without_a_connection_check(self):
+        self.setup.working = Mock(return_value=False)  # kein Netz: die Online-Wege würden hier abbrechen
+        self.setup.prepare_offline()
+        self.assertEqual(self.setup.state.stat().st_mode & 0o777, 0o600)
+        self.setup.family_offline(self.source)
+        self.assertEqual(self.setup.family.read_text(), self.source.read_text())
+        self.assertEqual(self.setup.resolv.readlink(), Path('/run/systemd/resolve/stub-resolv.conf'))
+        self.setup.recover_offline()
+        self.setup.working.assert_not_called()
     def test_failed_resolver_start_does_not_leave_stub_link(self):
         def run(command, **kwargs):
             return subprocess.CompletedProcess(command, 1 if command[:2] == ['systemctl', 'restart'] else 0, stdout='')
