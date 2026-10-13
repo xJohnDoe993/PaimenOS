@@ -1,14 +1,15 @@
 #!/bin/bash
 # Legt eine signierte Offline-Paketquelle (/paimenos-repo) auf eine fertige PaimenOS-ISO.
 #
-#   iso/build-offline-repo.sh ISO CHROOT
+#   iso/build-offline-repo.sh ISO
 #
-# ISO     fertige Live-ISO (wird ersetzt)
-# CHROOT  Wurzel des Live-Systems (live-build: <Build>/chroot); "/" nur für Tests im Container
-# Läuft als root in einer Debian-13-Umgebung mit Internet. Es lädt genau die Pakete, die das
-# Setup auf dem installierten System noch installieren würde (installer/offline-packages.txt),
-# jeweils mit denselben Optionen wie dort. Signaturschlüssel: PAIMENOS_REPO_SIGNING_KEY
-# (ASCII-armored, privat) oder ein Einmalschlüssel für diesen Build.
+# ISO  fertige Live-ISO (wird ersetzt)
+# Läuft als root in einer Debian-13-Umgebung mit Internet (debootstrap, apt-utils, gnupg, xorriso).
+# Es lädt die Pakete aus installer/offline-packages.txt mit allen Abhängigkeiten, jeweils mit denselben
+# Optionen wie das Setup. Berechnet wird relativ zu einem minimalen Debian-Grundsystem (minbase), nicht
+# relativ zum Live-System: Der Debian-Installer entfernt bei der Installation live-spezifische Pakete samt
+# ihrer Abhängigkeiten, im Zielsystem fehlt dann mehr als nur das Minimum. minbase ist stets enthalten.
+# Signaturschlüssel: PAIMENOS_REPO_SIGNING_KEY (ASCII-armored, privat) oder ein Einmalschlüssel.
 #
 # Das Repo ist flach (Packages/Release/InRelease direkt im Verzeichnis) und enthält eine leere
 # .aptignr: Der Debian-Installer durchsucht das Medium per apt-cdrom nach Paketindizes und bricht
@@ -19,7 +20,6 @@
 set -Eeuo pipefail
 [[ $EUID == 0 ]] || { echo 'Als root ausführen.' >&2; exit 1; }
 ISO=$(realpath "$1")
-CHROOT=$2
 ROOT=$(cd -- "$(dirname -- "$0")/.." && pwd)
 CODENAME=trixie
 WORK=$(mktemp -d /var/tmp/paimenos-offline.XXXXXX)
@@ -31,9 +31,12 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Zum Herunterladen dient ein frisches minbase-System. PAIMENOS_REPO_ROOT=/ nutzt stattdessen das laufende
+# System (nur für Tests in einem Container).
+DLROOT=${PAIMENOS_REPO_ROOT:-$WORK/base}
 inchroot() {
-    if [[ $CHROOT == / ]]; then env DEBIAN_FRONTEND=noninteractive "$@"
-    else chroot "$CHROOT" env DEBIAN_FRONTEND=noninteractive LC_ALL=C "$@"; fi
+    if [[ $DLROOT == / ]]; then env DEBIAN_FRONTEND=noninteractive "$@"
+    else chroot "$DLROOT" env DEBIAN_FRONTEND=noninteractive LC_ALL=C "$@"; fi
 }
 group() {  # Pakete einer Gruppe aus installer/offline-packages.txt
     awk -v g="$1" '/^\[/ {on = ($0 ~ "^\\[" g "\\]")} on && NF && $0 !~ /^[#\[]/ {print $1}' "$ROOT/installer/offline-packages.txt"
@@ -45,14 +48,16 @@ if [[ -n ${PAIMENOS_REPO_POOL:-} ]]; then
     cp "$PAIMENOS_REPO_POOL"/*.deb "$REPO/pool/"
     requested=(wiederverwendet)
 else
-    if [[ $CHROOT != / ]]; then
-        mount -t proc proc "$CHROOT/proc"; MOUNTS+=("$CHROOT/proc")
-        mount --bind /dev "$CHROOT/dev"; MOUNTS+=("$CHROOT/dev")
-        cp /etc/resolv.conf "$CHROOT/etc/resolv.conf"
+    if [[ $DLROOT != / ]]; then
+        debootstrap --variant=minbase "$CODENAME" "$DLROOT" http://deb.debian.org/debian
+        mount -t proc proc "$DLROOT/proc"; MOUNTS+=("$DLROOT/proc")
+        mount --bind /dev "$DLROOT/dev"; MOUNTS+=("$DLROOT/dev")
+        cp /etc/resolv.conf "$DLROOT/etc/resolv.conf"
+        inchroot apt-get clean
     fi
     # Dieselben Quellen wie das Setup auf dem Gerät (main, contrib, non-free, non-free-firmware).
-    rm -f "$CHROOT"/etc/apt/sources.list.d/*
-    cat > "$CHROOT/etc/apt/sources.list" <<SOURCES
+    rm -f "$DLROOT"/etc/apt/sources.list.d/*
+    cat > "$DLROOT/etc/apt/sources.list" <<SOURCES
 deb http://deb.debian.org/debian $CODENAME main contrib non-free non-free-firmware
 deb http://deb.debian.org/debian $CODENAME-updates main contrib non-free non-free-firmware
 deb http://deb.debian.org/debian-security $CODENAME-security main contrib non-free non-free-firmware
@@ -63,7 +68,7 @@ SOURCES
     inchroot apt-get install --download-only -y "${system[@]}"
     inchroot apt-get install --download-only -y --no-install-recommends "${hardware[@]}"
     inchroot apt-get install --download-only -y "${apps[@]}"
-    cp "$CHROOT"/var/cache/apt/archives/*.deb "$REPO/pool/"
+    cp "$DLROOT"/var/cache/apt/archives/*.deb "$REPO/pool/"
     requested=("${system[@]}" "${hardware[@]}" "${apps[@]}")
 fi
 echo "Pakete: $(ls "$REPO/pool" | wc -l), Größe: $(du -sh "$REPO/pool" | cut -f1)"
@@ -97,6 +102,21 @@ printf '%s\n' "$FPR" > "$REPO/FINGERPRINT"
 : > "$REPO/.aptignr"
 cp "$ROOT/VERSION" "$REPO/VERSION"
 printf '%s\n' "${requested[@]}" > "$REPO/REQUESTED"
+
+# Vollständigkeit prüfen: Im minimalen Grundsystem muss sich alles allein aus diesem Repo auflösen lassen
+# (nur Simulation, ohne Netzwerkquellen). Ein unvollständiges Repo bricht den Build ab.
+if [[ -z ${PAIMENOS_REPO_POOL:-} && $DLROOT != / ]]; then
+    mkdir -p "$DLROOT/mnt/repo" "$DLROOT/tmp/offline/sources.list.d" "$DLROOT/tmp/offline/lists/partial"
+    mount --bind "$REPO" "$DLROOT/mnt/repo"; MOUNTS+=("$DLROOT/mnt/repo")
+    printf 'Types: deb\nURIs: file:/mnt/repo\nSuites: ./\nSigned-By: /mnt/repo/paimenos-repo.gpg\n' > "$DLROOT/tmp/offline/sources.list.d/offline.sources"
+    printf 'Dir::Etc::sourcelist "/dev/null";\nDir::Etc::sourceparts "/tmp/offline/sources.list.d";\nDir::State::lists "/tmp/offline/lists";\n' > "$DLROOT/tmp/offline.conf"
+    offline_apt() { chroot "$DLROOT" env DEBIAN_FRONTEND=noninteractive APT_CONFIG=/tmp/offline.conf http_proxy=http://127.0.0.1:9 https_proxy=http://127.0.0.1:9 apt-get "$@"; }
+    offline_apt update >/dev/null
+    offline_apt install -s -y "${system[@]}" >/dev/null || { echo 'FEHLER: Offline-Repo unvollständig (system).' >&2; exit 1; }
+    offline_apt install -s -y --no-install-recommends "${hardware[@]}" >/dev/null || { echo 'FEHLER: Offline-Repo unvollständig (hardware).' >&2; exit 1; }
+    offline_apt install -s -y "${apps[@]}" >/dev/null || { echo 'FEHLER: Offline-Repo unvollständig (apps).' >&2; exit 1; }
+    echo 'Prüfung: Offline-Repo ist im minimalen Grundsystem vollständig auflösbar.'
+fi
 
 # In die ISO einbringen (ein vorhandenes /paimenos-repo wird ersetzt); Boot (BIOS und UEFI) bleibt unverändert.
 replace=()

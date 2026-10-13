@@ -37,7 +37,7 @@ xorriso -osirrox on -indev live-image-amd64.hybrid.iso \
 cmp "$ROOT/iso/preseed.cfg" "$BUILD/packaged-preseed.cfg"
 # Offline-Paketquelle auf die ISO legen (PAIMENOS_OFFLINE_REPO=0 überspringt das, z. B. für schnelle Tests).
 if [[ ${PAIMENOS_OFFLINE_REPO:-1} == 1 ]]; then
-    bash "$ROOT/iso/build-offline-repo.sh" "$BUILD/live-image-amd64.hybrid.iso" "$BUILD/chroot"
+    bash "$ROOT/iso/build-offline-repo.sh" "$BUILD/live-image-amd64.hybrid.iso"
     xorriso -osirrox on -indev live-image-amd64.hybrid.iso -extract /preseed.cfg "$BUILD/packaged-preseed.cfg"
     cmp "$ROOT/iso/preseed.cfg" "$BUILD/packaged-preseed.cfg"
 fi
