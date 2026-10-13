@@ -45,8 +45,10 @@ Firmware) plus eine kleine App-Auswahl (Tux Paint, Geany, Tux Math, SuperTux).
 Die Liste steht in `installer/offline-packages.txt`; ein Test hält sie mit
 `installer/10-system.sh` und `installer/20-hardware.sh` synchron.
 
-- **Online bevorzugt:** Das Setup prüft zuerst das Internet. Funktioniert es,
-  läuft alles wie bisher mit aktuellen Paketen und voller App-Auswahl.
+- **Online bevorzugt:** Das Setup wartet kurz auf das Netzwerk (`nm-online`) und prüft dann
+  das Internet. Funktioniert es, läuft alles mit aktuellen Paketen und voller App-Auswahl.
+  Schlägt die Prüfung fehl, wechselt das Setup nicht mehr still auf Offline: Es zeigt die
+  Fehler und fragt, ob es erneut versuchen oder mit den Offline-Paketen weitermachen soll.
 - **Ohne Internet** bindet das Setup das Installationsmedium (Volume-Label
   `PAIMENOS`) ein und installiert daraus (`PAIMENOS_OFFLINE=1`). **Der USB-Stick
   muss bis zum Ende des Setups stecken bleiben.** Beim Neustart nach der

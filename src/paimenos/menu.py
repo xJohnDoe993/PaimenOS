@@ -15,7 +15,7 @@ import socket
 from paimenos.images import (TaskSignals, submit_task, tuxpaint_command)
 from paimenos.diagnostics import collect_diagnostics, diagnostics_text, log_event
 from paimenos.state import read_settings, update_settings, atomic_json, app_with_current_title
-from paimenos.screen_guard import ActiveAppLease, child_access_blocked, screen_time_expired, protected_view_active
+from paimenos.screen_guard import ActiveAppLease, network_editor_marker, child_access_blocked, screen_time_expired, protected_view_active
 from paimenos.categories import CATEGORIES, available_categories, filter_category
 from paimenos.controller import ControllerReader
 from paimenos.network_status import NetworkStatus
@@ -622,6 +622,14 @@ class PaimenOSMenu(QWidget):
     def handle_network_editor_request(self):
         """Der Webbereich (Eltern-Bereich) bittet um den Netzwerkeditor; das Fenster öffnet sich über dem Browser."""
         request_file = os.path.join(str(STATE_DIR), "paimenos-menu.network-editor")
+        finished = getattr(self, "network_editor", None)
+        if finished is not None and finished.poll() is not None:
+            # Vom Elternteil geschlossen: Zombie einsammeln und den "Zum Menü"-Knopf wieder freigeben.
+            self.network_editor = None
+            try:
+                os.unlink(network_editor_marker())
+            except OSError:
+                pass
         if not os.path.exists(request_file):
             return
         os.unlink(request_file)
@@ -632,12 +640,19 @@ class PaimenOSMenu(QWidget):
         try:
             self.network_editor = subprocess.Popen([editor], start_new_session=True, env=application_environment(),
                                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            # Der "Zum Menü"-Knopf bleibt sonst über dem Editor stehen und verdeckt dessen Fensterleiste.
+            with open(network_editor_marker(), 'w', encoding='utf-8') as marker:
+                marker.write(str(self.network_editor.pid))
         except OSError as exc:
             log_event(t('Anwendung'), str(exc))
 
     def close_network_editor(self):
         """Der Netzwerkeditor gehört zum Eltern-Bereich: Er bleibt nicht über dem Kinder-Menü stehen."""
         editor = getattr(self, "network_editor", None)
+        try:
+            os.unlink(network_editor_marker())
+        except OSError:
+            pass
         if editor is not None and editor.poll() is None:
             editor.terminate()
             # nm-connection-editor ignoriert SIGTERM gelegentlich: nach kurzer Frist erzwingen.

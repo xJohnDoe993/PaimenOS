@@ -11,7 +11,7 @@ from paimenos import theme
 from paimenos.state import read_settings
 from paimenos.webapp import BAR_HEIGHT, MENU_WIDTH
 from paimenos.fullscreen import FullscreenTracker
-from paimenos.screen_guard import child_access_blocked
+from paimenos.screen_guard import child_access_blocked, network_editor_open
 
 
 class CloseButtonOverlay(QWidget):
@@ -129,7 +129,7 @@ class CloseButtonOverlay(QWidget):
             return
         blocked = child_access_blocked()
         self.button.setEnabled(not blocked)
-        if blocked or self.fullscreen.is_fullscreen():
+        if blocked or self.fullscreen.is_fullscreen() or network_editor_open():
             self.hide()
         elif not self.isVisible():
             # WA_ShowWithoutActivating bleibt gesetzt: das Video verliert
