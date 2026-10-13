@@ -36,20 +36,28 @@ valid_username() {
     [[ $1 =~ ^[a-z][a-z0-9_-]{0,30}$ ]] && [[ $1 != kids && $1 != root && $1 != live ]]
 }
 
-# Zeilen von "lsblk -dnbP -o NAME,SIZE,TYPE,MODEL" lesen und nur geeignete Zielplatten ausgeben:
+# Zeilen von "lsblk -dnbPp -o NAME,SIZE,TYPE,MODEL" (-p: volle Pfade wie /dev/sda) lesen und nur geeignete Zielplatten ausgeben:
 # "NAME|GRÖSSE|MODELL". Ausgeschlossen: das Installationsmedium ($1), Loop-/RAM-/zram-/optische
 # Geräte und alles unter 16 GB.
 filter_disks() {
-    local medium_disk=$1 line NAME='' SIZE='' TYPE='' MODEL=''
+    local medium_disk=$1 line NAME SIZE TYPE MODEL
     while IFS= read -r line; do
         NAME=''; SIZE=0; TYPE=''; MODEL=''
-        eval "$line" 2>/dev/null || continue
+        # Kein eval: Modellnamen kommen vom Gerät.
+        [[ $line =~ NAME=\"([^\"]*)\" ]] && NAME=${BASH_REMATCH[1]}
+        [[ $line =~ SIZE=\"([0-9]+)\" ]] && SIZE=${BASH_REMATCH[1]}
+        [[ $line =~ TYPE=\"([^\"]*)\" ]] && TYPE=${BASH_REMATCH[1]}
+        [[ $line =~ MODEL=\"([^\"]*)\" ]] && MODEL=${BASH_REMATCH[1]}
         [[ $TYPE == disk ]] || continue
         case "$NAME" in /dev/loop*|/dev/ram*|/dev/zram*|/dev/sr*|/dev/fd*|/dev/nbd*) continue ;; esac
         [[ $NAME == "$medium_disk" ]] && continue
         (( SIZE >= MIN_DISK_BYTES )) || continue
         printf '%s|%s|%s\n' "$NAME" "$SIZE" "${MODEL:-?}"
     done
+}
+
+lsblk_disks() {
+    lsblk -dnbPp -o NAME,SIZE,TYPE,MODEL
 }
 
 human_size() {
@@ -126,7 +134,7 @@ choose_keyboard() {
 choose_timezone() {
     local default=$1 region zone regions=() zones=() name
     local default_region=${default%%/*}
-    while IFS= read -r name; do regions+=("$name" "$name"); done < <(timedatectl list-timezones 2>/dev/null | cut -d/ -f1 | sort -u | grep -vx -e UTC -e Etc)
+    while IFS= read -r name; do regions+=("$name" "$name"); done < <(timedatectl list-timezones 2>/dev/null | cut -d/ -f1 | sort -u | grep -vx -e UTC -e Etc -e Factory)
     ((${#regions[@]})) || { printf '%s' "$default"; return 0; }
     while :; do
         region=$(ask_menu "$(paimenos_text 'In welcher Weltregion liegt dein Gerät?')" "$default_region" "${regions[@]}") || return 1
@@ -139,13 +147,14 @@ choose_timezone() {
 choose_disk() {
     local entries=() line name size model disk
     while IFS='|' read -r name size model; do
+        [[ $model == '?' ]] && model=$(paimenos_text 'Festplatte')
         entries+=("$name" "$model, $(human_size "$size") ($name)")
-    done < <(lsblk -dnbP -o NAME,SIZE,TYPE,MODEL | filter_disks "$(medium_disk)")
+    done < <(lsblk_disks | filter_disks "$(medium_disk)")
     if ((${#entries[@]} == 0)); then
         whiptail --title "$TITLE" --msgbox "$(paimenos_text 'Es wurde keine geeignete Festplatte gefunden (mindestens 16 GB, nicht der USB-Stick).')" 10 64
         return 1
     fi
-    disk=$(ask_menu "$(paimenos_text 'Auf welche Festplatte soll PaimenOS?\n\nDie ganze Platte wird benutzt. Eine Aufteilung in Partitionen ist nicht nötig.')" "${entries[0]}" "${entries[@]}") || return 1
+    disk=$(ask_menu "$(paimenos_text 'Auf welche Festplatte soll PaimenOS?\nDie ganze Platte wird benutzt, eine Aufteilung ist nicht nötig.')" "${entries[0]}" "${entries[@]}") || return 1
     printf '%s' "$disk"
 }
 
@@ -256,7 +265,9 @@ configure_target() {
 
 install_bootloader() {
     local disk=$1 mode=$2
+    [[ -f $TARGET/etc/default/grub ]] || printf 'GRUB_DEFAULT=0\nGRUB_TIMEOUT=3\nGRUB_CMDLINE_LINUX_DEFAULT="quiet"\nGRUB_CMDLINE_LINUX=""\n' > "$TARGET/etc/default/grub"
     sed -i -e 's/^GRUB_DISTRIBUTOR=.*/GRUB_DISTRIBUTOR="PaimenOS"/' "$TARGET/etc/default/grub"
+    grep -q '^GRUB_DISTRIBUTOR=' "$TARGET/etc/default/grub" || printf 'GRUB_DISTRIBUTOR="PaimenOS"\n' >> "$TARGET/etc/default/grub"
     grep -q '^GRUB_DISABLE_OS_PROBER' "$TARGET/etc/default/grub" || printf 'GRUB_DISABLE_OS_PROBER=true\n' >> "$TARGET/etc/default/grub"
     must in_target update-initramfs -u -k all
     if [[ $mode == efi ]]; then
@@ -361,7 +372,7 @@ main() {
         exit 0
     fi
     cleanup_mounts
-    whiptail --title "$TITLE" --msgbox "$(paimenos_text 'Die Installation ist fehlgeschlagen. Das Protokoll steht in {value0}. Du kannst es im Live-Menü erneut versuchen.' "$LOG")" 11 64
+    whiptail --title "$TITLE" --msgbox "$(paimenos_text 'Die Installation ist fehlgeschlagen. Das Protokoll steht in {value0}. Du kannst es im Live-Menü erneut versuchen.\n\nLetzte Meldungen:\n{value1}' "$LOG" "$(tail -n 8 "$LOG" 2>/dev/null | cut -c1-76)")" 22 80
     exit 1
 }
 
