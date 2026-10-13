@@ -72,7 +72,6 @@ if apt-get install -y \
     fonts-font-awesome \
     imagemagick \
     librsvg2-bin \
-    squid \
     whiptail \
     procps \
     util-linux; then

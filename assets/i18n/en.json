@@ -869,7 +869,6 @@
   "Suche läuft …": "Searching …",
   "Suche läuft … Gerät in den Kopplungsmodus versetzen.": "Searching … Put the device in pairing mode.",
   "System, Plymouth, X11, Python & Tools installieren ...": "Installing system, Plymouth, X11, Python & tools ...",
-  "System-Rechte, Family-DNS, Proxy & Webapp-Logos cachen ...": "System permissions, family DNS, proxy & webapp icon cache ...",
   "Tageslimit": "Daily limit",
   "Tageslimit gespeichert.": "Daily limit saved.",
   "Tageslimit speichern": "Save daily limit",
@@ -1386,5 +1385,6 @@
   "Bitte die Geräte-Diagnose im Eltern-Bereich öffnen.": "Please open the device diagnostics in the parent area.",
   "Warte auf das Netzwerk ...\\n": "Waiting for the network ...\\n",
   "\\nKein Internet erreichbar (Fehlermeldungen siehe oben).\\nMit Offline-Paketen bleiben Emulatoren, Flathub-Apps, Sprachausgabe und der Mauszeiger (Bibata) aus.\\n": "\\nNo internet connection (see the error messages above).\\nWith offline packages, emulators, Flathub apps, speech output and the Bibata mouse pointer are not installed.\\n",
-  "1) Erneut versuchen  2) Mit Offline-Paketen vom USB-Stick fortfahren [1]: ": "1) Try again  2) Continue with offline packages from the USB stick [1]: "
+  "1) Erneut versuchen  2) Mit Offline-Paketen vom USB-Stick fortfahren [1]: ": "1) Try again  2) Continue with offline packages from the USB stick [1]: ",
+  "System-Rechte, Family-DNS & Webapp-Logos cachen ...": "System permissions, family DNS & webapp icon cache ..."
 }

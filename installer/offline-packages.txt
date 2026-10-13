@@ -67,7 +67,6 @@ fonts-noto-color-emoji
 fonts-font-awesome
 imagemagick
 librsvg2-bin
-squid
 whiptail
 procps
 util-linux

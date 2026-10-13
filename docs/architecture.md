@@ -35,7 +35,7 @@ Root-Dienste importieren keinen Programmcode aus dem Kinderverzeichnis. `run.py`
 | `20-hardware.sh` | Firmware, TLP, ZRAM, Sicherheitsupdates, Touchpad und Journald |
 | `30-plymouth.sh` | Boot-Theme und Initramfs |
 | `40-user.sh` | Benutzer, Gruppen, Verzeichnisse und Cursor |
-| `50-browser.sh` | Polkit, Proxy/DNS, Firefox-Vorgaben und Webapp-Icons |
+| `50-browser.sh` | Polkit, DNS, Firefox-Vorgaben und Webapp-Icons |
 | `60-apps.sh` | App-Auswahl, Debian/Flatpak, Starter und App-Update-Timer |
 | `70-defaults.sh` | Erste Einstellungen und App-Liste |
 | `80-services.sh` | Emulatoren installieren, Systemdienste und deren Startprüfung |

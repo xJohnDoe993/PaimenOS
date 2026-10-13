@@ -206,3 +206,12 @@ cat /usr/local/lib/paimenos/current/installed.json
 ```
 
 Frühere Releases bleiben für Fehlersuche erhalten. Eine automatische Löschstrategie ist noch nicht enthalten.
+
+## Squid-Proxy entfernt
+
+Der frühere lokale Squid-Cache-Proxy (`127.0.0.1:3128`) wird nicht mehr installiert: Er cachte bei HTTPS
+praktisch nichts, verdoppelte den Firefox-Cache und verhinderte, dass Firefox seine DNS-over-HTTPS-Einstellung
+nutzt. Bestehende Geräte werden beim Backend-Update bereinigt: `tools/deploy.py` stoppt und deaktiviert
+`squid.service` (das Paket bleibt installiert; `sudo apt purge squid` entfernt es), und beim nächsten Start
+einer Webapp oder des Eltern-Bereichs entfernt `prepare_profile` die alten Proxy-Einstellungen aus der
+Firefox-Vorlage und setzt `network.proxy.type` auf 0.
