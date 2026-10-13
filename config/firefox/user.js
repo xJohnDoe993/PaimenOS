@@ -1,4 +1,7 @@
 user_pref("network.proxy.type", 0);
+// Cookie-Banner automatisch ablehnen (Mozilla-Regeln); uBlock Origin blendet den Rest mit den Cookie-Listen aus.
+user_pref("cookiebanners.service.mode", 1);
+user_pref("cookiebanners.service.mode.privateBrowsing", 1);
 user_pref("browser.cache.disk.enable", true);
 user_pref("browser.cache.memory.enable", true);
 user_pref("browser.cache.memory.capacity", -1);

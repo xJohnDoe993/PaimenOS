@@ -14,6 +14,8 @@ CHROME_IMPORT = '@import url("paimenos-webapp.css");'
 BEGIN = '// PaimenOS Webapp-Navigation: Anfang'
 END = '// PaimenOS Webapp-Navigation: Ende'
 PREFERENCES = '''user_pref("network.proxy.type", 0);
+user_pref("cookiebanners.service.mode", 1);
+user_pref("cookiebanners.service.mode.privateBrowsing", 1);
 user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
 user_pref("browser.fullscreen.autohide", false);
 user_pref("browser.tabs.drawInTitlebar", true);
