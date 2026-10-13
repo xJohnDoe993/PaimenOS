@@ -8,19 +8,33 @@ verfügbar; der Workflow veröffentlicht keinen Release.
 ## Installation
 
 1. ISO auf einen USB-Stick schreiben und davon booten.
-2. Im Bootmenü den Debian-Installer starten. Systemsprache, Zielplatte und Administrator-Zugang
-   selbst wählen; als Administrator einen anderen Namen als `kids` verwenden.
-3. Installation abschließen und neu starten. Den USB-Stick **stecken lassen**, wenn
-   das Gerät beim Setup kein Internet hat (siehe [Offline-Installation](#offline-installation));
-   mit Internet darf er entfernt werden. Beim Start nicht vom Stick booten,
-   sondern von der Platte.
-4. Auf der ersten Textkonsole erscheint die PaimenOS-Einrichtung automatisch.
+2. Im Bootmenü **PaimenOS installieren** wählen (**PaimenOS Live-System testen** startet
+   nur das Live-System). Der PaimenOS-Installer (`iso/install.sh`) fragt der Reihe nach:
+   Sprache, Tastatur-Layout, Zeitzone, WLAN (ja/nein), Zielplatte und ein
+   Administrator-Konto (Name und Passwort, nicht `kids`). Die **ganze Platte** wird benutzt
+   und gelöscht; eine eigene Partitionierung gibt es nicht.
+3. Der Installer teilt die Platte ein (UEFI: 512 MB EFI-Partition + ext4, BIOS: GPT mit
+   BIOS-Boot-Partition + ext4), kopiert das Live-System darauf (`filesystem.squashfs`),
+   richtet Sprache, Tastatur, Zeitzone, Administrator und Bootloader ein und startet das
+   installierte System per `kexec` **ohne Firmware-Neustart**.
+4. Dort erscheint auf der ersten Textkonsole sofort die PaimenOS-Einrichtung.
    Bei Bedarf mit **1** über `nmtui` WLAN einrichten; mit **2** das Setup starten.
    **4** zeigt die Netzwerkdiagnose und prüft den Paketabruf ausschließlich per IPv4.
 5. Eltern-PIN, Emulatoren, Apps und Debian/Flathub-Paketquelle im normalen
    Setup selbst wählen. Nach Abschluss neu starten: Die Kinderoberfläche erscheint.
 
-Die PaimenOS-Einrichtung übernimmt die im Debian-Installer gewählte Systemsprache.
+Der USB-Stick muss **stecken bleiben**, wenn das Gerät beim Setup kein Internet hat
+(siehe [Offline-Installation](#offline-installation)). Startet `kexec` nicht (zum Beispiel
+wegen Secure Boot), startet das Gerät normal neu und setzt die Einrichtung beim Hochfahren
+fort; dann nicht vom Stick booten. Das Protokoll der Installation steht in
+`/var/log/paimenos-install.log` (im Live-System).
+
+Gespeicherte WLAN-Zugänge aus dem Live-System werden in das installierte System übernommen.
+Der Bootloader besteht aus den Paketen `grub-pc-bin`, `grub-efi-amd64-bin`,
+`grub-efi-amd64-signed` und `shim-signed`; nach größeren GRUB-Updates kann
+`sudo grub-install` nötig sein.
+
+Die PaimenOS-Einrichtung übernimmt die im Installer gewählte Systemsprache.
 Englisch führt zu englischen Setup-Dialogen und englischsprachigen Standard-Webapps.
 Unter Debian 13 gilt `/etc/locale.conf` vor einem älteren Eintrag in
 `/etc/default/locale`; unter Debian 12 wird weiterhin dessen Locale-Datei verwendet.
@@ -29,10 +43,11 @@ Unter Debian 13 gilt `/etc/locale.conf` vor einem älteren Eintrag in
 
 BIOS und UEFI nutzen dasselbe GRUB-Menü (`iso/grub/`, von `iso/build.sh` über
 `config/bootloaders/grub-pc` in live-build eingespielt, statt der Vorlage von
-Debian). Es enthält nur **PaimenOS Live-System starten**, **PaimenOS installieren
-(grafisch)**, **PaimenOS installieren (Text)** und bei UEFI die
-Firmware-Einstellungen. Failsafe, Memtest, Prüfsummen, Expert-/Rescue-Modus und
-die Dark-Theme-/Sprachausgabe-Varianten entfallen. Das Logo steht in
+Debian). Es enthält nur **PaimenOS installieren**, **PaimenOS Live-System testen**
+und bei UEFI die Firmware-Einstellungen. Beide Einträge starten dasselbe Live-System;
+„installieren“ übergibt `paimenos.install`, worauf das Live-Menü den Installer
+direkt öffnet. Der Debian-Installer ist nicht mehr auf der ISO. Failsafe, Memtest und
+Prüfsummen entfallen. Das Logo steht in
 `iso/grub/splash.png` (erzeugt mit `tools/make-grub-splash.py`), die Farben in
 `iso/grub/live-theme/theme.txt`. Syslinux wird nicht mehr verwendet.
 
@@ -84,14 +99,10 @@ Das Plymouth-Theme wird ebenfalls erst durch dieses Setup aktiviert.
 Der Live-Modus startet auf tty1 ein Textmenü (`iso/live-menu.sh`) mit
 **PaimenOS installieren**, **WLAN/Netzwerk einrichten** (`nmtui`), **Konsole
 öffnen** (Benutzer `live`, mit `exit` zurück), **Neu starten** und
-**Ausschalten**. „Installieren“ lädt den Debian-Installer vom Boot-Medium per
-`kexec` (grafisch, sonst Text) und startet ihn mit derselben `preseed.cfg` wie
-der Bootmenü-Eintrag. Geht das nicht, etwa bei Secure Boot, erklärt das Menü
-den Neustart und bietet ihn an; im Bootmenü dann „PaimenOS installieren (grafisch)“
-wählen. Das Menü läuft nur im Live-System (`/run/live/medium`), nie
+**Ausschalten**. „Installieren“ startet den PaimenOS-Installer (siehe oben). Das Menü läuft nur im Live-System (`/run/live/medium`), nie
 auf dem installierten Gerät. Es gibt keine fertige Kinderoberfläche im
 Live-System. Die automatische Einrichtung wird nur auf dem installierten
-System durch den Debian-Installer aktiviert. Nach erfolgreichem Setup wird sie
+System durch den PaimenOS-Installer aktiviert. Nach erfolgreichem Setup wird sie
 deaktiviert und erscheint bei späteren Neustarts nicht erneut.
 
 Bei einem Fehler kann das Setup im selben Menü erneut gestartet werden. Eine
@@ -141,8 +152,8 @@ Der Build läuft in einem privilegierten Debian-13-Container auf einem
 GitHub-Runner, ohne zusätzliche Repository-Secrets. BIOS- und UEFI-Bootloader
 sind enthalten; Secure Boot ist noch nicht verifiziert. Nur vertrauenswürdige
 Branches bauen. Das ISO enthält den eingecheckten Stand, keine Git-Zugangsdaten.
-Die Installer-Vorkonfiguration liegt unter `/cdrom/preseed.cfg`; der Build
-extrahiert sie aus dem fertigen ISO und prüft den Inhalt gegen die Quelle.
+Der Build prüft, dass `/live/filesystem.squashfs` auf der fertigen ISO liegt;
+der Installer kopiert genau dieses Abbild.
 
 Für einen lokalen Build in Debian 13 mit root-Rechten:
 

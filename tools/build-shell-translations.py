@@ -9,7 +9,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 catalog = json.loads((ROOT / 'assets/i18n/en.json').read_text(encoding='utf-8'))
 messages = set()
-for path in [ROOT / 'install.sh', *(ROOT / 'installer').glob('*.sh'), ROOT / 'iso/setup-after-install.sh', ROOT / 'iso/live-menu.sh']:
+for path in [ROOT / 'install.sh', *(ROOT / 'installer').glob('*.sh'), ROOT / 'iso/setup-after-install.sh', ROOT / 'iso/live-menu.sh', ROOT / 'iso/install.sh']:
     if path.name == 'english.sh':
         continue
     source = path.read_text(encoding='utf-8')
