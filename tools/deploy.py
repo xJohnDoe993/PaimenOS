@@ -249,6 +249,16 @@ def restart_services():
                 continue
             subprocess.run(user_command('is-active', '--quiet', unit), check=True)
 
+def retire_squid(run=subprocess.run):
+    """Der frühere lokale Squid-Proxy wird nicht mehr genutzt: Dienst auf bestehenden Geräten stoppen.
+
+    Best effort, ein Fehler hier bricht kein Update ab. Das Paket bleibt installiert (apt autoremove/purge
+    entfernt es später); die Firefox-Einstellungen bereinigt prepare_profile beim nächsten Start.
+    """
+    if not any(Path(folder, 'squid.service').is_file() for folder in ('/usr/lib/systemd/system', '/lib/systemd/system', '/etc/systemd/system')):
+        return
+    run(['systemctl', 'disable', '--now', 'squid.service'], check=False, capture_output=True)
+
 def activate(base, release, *, initial=False, units=False, live=True, package_progress=print, packages_prepared=False):
     current = base / 'current'
     old = current.resolve() if current.is_symlink() else None
@@ -259,6 +269,7 @@ def activate(base, release, *, initial=False, units=False, live=True, package_pr
         if live:
             install_launchers(release, previous=old)
             if not initial:
+                retire_squid()
                 if units:
                     apply_units(release, previous=old)
                 restart_services()

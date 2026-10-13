@@ -132,6 +132,18 @@ class GuardTests(GuardFixture, unittest.TestCase):
         self.assertEqual(json.loads(self.settings_file.read_text())['today_used_seconds'], 12)
         self.assertFalse(screen_guard.app_active())
 
+    def test_network_editor_marker_tracks_a_live_process(self):
+        self.assertFalse(screen_guard.network_editor_open())
+        marker = screen_guard.network_editor_marker()
+        marker.write_text(str(os.getpid()))
+        self.assertTrue(screen_guard.network_editor_open())
+        process = subprocess.Popen([sys.executable, '-c', 'pass'])
+        process.wait()
+        marker.write_text(str(process.pid))
+        self.assertFalse(screen_guard.network_editor_open())
+        marker.write_text('kaputt')
+        self.assertFalse(screen_guard.network_editor_open())
+
     def test_timer_leaves_active_parent_view_in_front_then_starts_lock_on_close(self):
         self.save(today_used_seconds=60)
         class EndLoop(Exception):

@@ -10,13 +10,18 @@ class NetworkStatus:
         self.lock = threading.Lock()
         self.online, self.pending, self.last_started = False, False, -100
 
-    @staticmethod
-    def probe():
-        try:
-            with socket.create_connection(('1.1.1.1', 53), timeout=.5):
-                return True
-        except OSError:
-            return False
+    # Mehrere Ziele: Manche Netze (VM-NAT, Filter) sperren einzelne Adressen oder Ports.
+    TARGETS = (('1.1.1.1', 53), ('9.9.9.9', 53), ('deb.debian.org', 443))
+
+    @classmethod
+    def probe(cls):
+        for target in cls.TARGETS:
+            try:
+                with socket.create_connection(target, timeout=1.5):
+                    return True
+            except OSError:
+                continue
+        return False
 
     def value(self):
         with self.lock:

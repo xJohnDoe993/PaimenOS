@@ -1,5 +1,6 @@
 """Cross-process priority for screen-time and parent views."""
 import fcntl
+import os
 from paimenos.paths import STATE_DIR
 from paimenos.state import read_settings, remaining_seconds
 
@@ -61,3 +62,17 @@ def app_active():
 
 def child_access_blocked():
     return screen_time_expired() or protected_view_active()
+
+
+def network_editor_marker():
+    return STATE_DIR / 'paimenos-network-editor.pid'
+
+
+def network_editor_open():
+    """True, solange der vom Menü gestartete Netzwerkeditor läuft (Marker enthält seine PID)."""
+    try:
+        with open(network_editor_marker(), encoding='utf-8') as marker:
+            os.kill(int(marker.read().strip()), 0)
+        return True
+    except (OSError, ValueError):
+        return False

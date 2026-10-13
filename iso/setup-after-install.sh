@@ -39,6 +39,9 @@ offline_ready() {
     /usr/bin/python3 "$SOURCE/iso/prepare-apt.py" --offline-repo "$MEDIUM_MOUNT/paimenos-repo" --apt-config "$APT_SESSION_CONFIG" || return 1
     APT_CONFIG="$APT_SESSION_CONFIG" apt-get update || return 1
 }
+medium_present() {
+    mountpoint -q "$MEDIUM_MOUNT" || [[ -n "$(blkid -L PAIMENOS 2>/dev/null | head -n 1)" ]]
+}
 # Never install/update a pre-existing finished system automatically.
 if [[ ! -f $SUCCESS ]]; then
     printf "$(paimenos_text '\nWillkommen bei PaimenOS!\nDie Debian-Grundinstallation ist abgeschlossen.\n')"
@@ -67,9 +70,22 @@ if [[ ! -f $SUCCESS ]]; then
             ''|2) ;;
             *) continue ;;
         esac
-        # Online bevorzugt; ohne Internet dient das Installationsmedium (Offline-Paketquelle) als Rückfall.
+        # Online bevorzugt; das Installationsmedium (Offline-Paketquelle) gibt es nur als gewählte Alternative.
         OFFLINE=0
+        # Direkt nach dem Start ist die Verbindung oft noch nicht fertig (DHCP): kurz abwarten.
+        if command -v nm-online >/dev/null 2>&1; then
+            printf "$(paimenos_text 'Warte auf das Netzwerk ...\n')"
+            nm-online -q -t 20 || true
+        fi
         if ! online_ready; then
+            if ! medium_present; then
+                printf "$(paimenos_text 'Kein Internet und kein Installationsmedium mit Offline-Paketen gefunden.\nBitte Netzwerk einrichten (1) oder den USB-Stick mit PaimenOS einstecken und erneut versuchen.\n')"
+                /usr/bin/python3 "$SOURCE/iso/prepare-apt.py" --diagnose || true
+                continue
+            fi
+            printf "$(paimenos_text '\nKein Internet erreichbar (Fehlermeldungen siehe oben).\nMit Offline-Paketen bleiben Emulatoren, Flathub-Apps, Sprachausgabe und der Mauszeiger (Bibata) aus.\n')"
+            read -r -p "$(paimenos_text '1) Erneut versuchen  2) Mit Offline-Paketen vom USB-Stick fortfahren [1]: ')" offline_choice
+            [[ $offline_choice == 2 ]] || continue
             if ! offline_ready; then
                 printf "$(paimenos_text 'Kein Internet und kein Installationsmedium mit Offline-Paketen gefunden.\nBitte Netzwerk einrichten (1) oder den USB-Stick mit PaimenOS einstecken und erneut versuchen.\n')"
                 /usr/bin/python3 "$SOURCE/iso/prepare-apt.py" --diagnose || true

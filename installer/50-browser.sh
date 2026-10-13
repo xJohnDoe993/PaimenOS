@@ -2,7 +2,7 @@
 # Wird von install.sh in einer gemeinsamen Shell geladen.
 # 5. Polkit Rechte, Proxy, DNS & Webapp-Icon Caching
 # ---------------------------------------------------------------------------
-echo "$(paimenos_text 'System-Rechte, Family-DNS, Proxy & Webapp-Logos cachen ...')"
+echo "$(paimenos_text 'System-Rechte, Family-DNS & Webapp-Logos cachen ...')"
 
 mkdir -p /etc/polkit-1/rules.d
 install_repo_file config/polkit/49-kids-shutdown.rules /etc/polkit-1/rules.d/49-kids-shutdown.rules
@@ -10,12 +10,6 @@ chown root:root /etc/polkit-1/rules.d/49-kids-shutdown.rules
 chmod 0644 /etc/polkit-1/rules.d/49-kids-shutdown.rules
 install_repo_file config/polkit/50-paimenos-removable-media.rules /etc/polkit-1/rules.d/50-paimenos-removable-media.rules
 chmod 0644 /etc/polkit-1/rules.d/50-paimenos-removable-media.rules
-
-# Squid Konfiguration
-install_repo_file config/squid/squid.conf /etc/squid/squid.conf
-
-systemctl restart squid
-systemctl enable squid
 
 # Firefox user.js Profil
 FIREFOX_DIR="${KIDS_HOME}/.mozilla/firefox"
