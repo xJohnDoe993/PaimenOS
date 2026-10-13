@@ -25,6 +25,17 @@ Englisch führt zu englischen Setup-Dialogen und englischsprachigen Standard-Web
 Unter Debian 13 gilt `/etc/locale.conf` vor einem älteren Eintrag in
 `/etc/default/locale`; unter Debian 12 wird weiterhin dessen Locale-Datei verwendet.
 
+## Bootmenü
+
+BIOS und UEFI nutzen dasselbe GRUB-Menü (`iso/grub/`, von `iso/build.sh` über
+`config/bootloaders/grub-pc` in live-build eingespielt, statt der Vorlage von
+Debian). Es enthält nur **PaimenOS Live-System starten**, **PaimenOS installieren
+(grafisch)**, **PaimenOS installieren (Text)** und bei UEFI die
+Firmware-Einstellungen. Failsafe, Memtest, Prüfsummen, Expert-/Rescue-Modus und
+die Dark-Theme-/Sprachausgabe-Varianten entfallen. Das Logo steht in
+`iso/grub/splash.png` (erzeugt mit `tools/make-grub-splash.py`), die Farben in
+`iso/grub/live-theme/theme.txt`. Syslinux wird nicht mehr verwendet.
+
 ## Offline-Installation
 
 Die ISO enthält neben dem Debian-Grundsystem eine signierte Offline-Paketquelle
@@ -76,8 +87,8 @@ Der Live-Modus startet auf tty1 ein Textmenü (`iso/live-menu.sh`) mit
 **Ausschalten**. „Installieren“ lädt den Debian-Installer vom Boot-Medium per
 `kexec` (grafisch, sonst Text) und startet ihn mit derselben `preseed.cfg` wie
 der Bootmenü-Eintrag. Geht das nicht, etwa bei Secure Boot, erklärt das Menü
-den Neustart und bietet ihn an; im Bootmenü dann „Graphical Install“ oder
-„Install“ wählen. Das Menü läuft nur im Live-System (`/run/live/medium`), nie
+den Neustart und bietet ihn an; im Bootmenü dann „PaimenOS installieren (grafisch)“
+wählen. Das Menü läuft nur im Live-System (`/run/live/medium`), nie
 auf dem installierten Gerät. Es gibt keine fertige Kinderoberfläche im
 Live-System. Die automatische Einrichtung wird nur auf dem installierten
 System durch den Debian-Installer aktiviert. Nach erfolgreichem Setup wird sie

@@ -30,7 +30,7 @@ install_entry() {
     clear
     printf '%s\n' "$(paimenos_text 'Installer wird gestartet ...')"
     start_installer && return 0
-    if whiptail --title "$TITLE" --yesno "$(paimenos_text 'Der Installer konnte nicht direkt gestartet werden.\n\nBitte jetzt neu starten und im Bootmenü „Graphical Install“ oder „Install“ wählen. Jetzt neu starten?')" 14 64; then
+    if whiptail --title "$TITLE" --yesno "$(paimenos_text 'Der Installer konnte nicht direkt gestartet werden.\n\nBitte jetzt neu starten und im Bootmenü „PaimenOS installieren (grafisch)“ wählen. Jetzt neu starten?')" 14 64; then
         systemctl reboot
     fi
 }
