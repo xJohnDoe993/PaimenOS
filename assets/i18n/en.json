@@ -1417,5 +1417,7 @@
   "Die Grundinstallation ist fertig. Das Gerät startet jetzt neu und setzt die Einrichtung fort. Den USB-Stick stecken lassen und beim Start nicht davon booten.": "The base installation is complete. The device now restarts and continues the setup. Leave the USB stick plugged in and do not boot from it.",
   "Die Installation ist fehlgeschlagen. Das Protokoll steht in {value0}. Du kannst es im Live-Menü erneut versuchen.\\n\\nLetzte Meldungen:\\n{value1}": "The installation failed. The log is in {value0}. You can try again from the live menu.\\n\\nLast messages:\\n{value1}",
   "Auf welche Festplatte soll PaimenOS?\\nDie ganze Platte wird benutzt, eine Aufteilung ist nicht nötig.": "Which disk should PaimenOS be installed on?\\nThe whole disk is used, no partitioning is needed.",
-  "Festplatte": "Disk"
+  "Festplatte": "Disk",
+  "  ! Flathub ist nicht erreichbar.": "  ! Flathub is unavailable.",
+  "1) Erneut versuchen  2) Debian-Pakete verwenden [1]: ": "1) Try again  2) Use Debian packages [1]: "
 }

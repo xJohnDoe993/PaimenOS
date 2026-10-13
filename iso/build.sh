@@ -19,7 +19,7 @@ mkdir -p config/includes.chroot/opt/paimenos-source config/hooks/live config/pac
 cp -a "$ROOT/iso/grub" config/bootloaders/grub-pc
 # Tracked source only: no credentials, git history or previous build output.
 git -C "$ROOT" archive HEAD | tar -x -C config/includes.chroot/opt/paimenos-source
-printf '%s\n' 'live-boot live-config live-config-systemd linux-image-amd64 systemd-sysv locales sudo python3 ca-certificates network-manager wpasupplicant firmware-iwlwifi firmware-realtek firmware-atheros firmware-misc-nonfree whiptail kexec-tools rsync dosfstools e2fsprogs kbd efibootmgr grub-common grub2-common grub-pc-bin grub-efi-amd64-bin grub-efi-amd64-signed shim-signed' > config/package-lists/base.list.chroot
+printf '%s\n' 'live-boot live-config live-config-systemd linux-image-amd64 systemd-sysv locales sudo python3 ca-certificates network-manager systemd-timesyncd wpasupplicant firmware-iwlwifi firmware-realtek firmware-atheros firmware-misc-nonfree whiptail kexec-tools rsync dosfstools e2fsprogs kbd efibootmgr grub-common grub2-common grub-pc-bin grub-efi-amd64-bin grub-efi-amd64-signed shim-signed' > config/package-lists/base.list.chroot
 cat > config/hooks/live/0900-paimenos.hook.chroot <<'HOOK'
 #!/bin/bash
 set -Eeuo pipefail

@@ -83,10 +83,16 @@ prepare_flatpak() {
         echo "$(paimenos_text '  ! Flatpak konnte nicht eingerichtet werden; verwende Debian-Pakete.')" >&2
         return 1
     fi
-    if ! flatpak remote-add --system --if-not-exists "$FLATPAK_REMOTE" https://dl.flathub.org/repo/flathub.flatpakrepo; then
-        echo "$(paimenos_text '  ! Flathub ist nicht erreichbar; verwende Debian-Pakete.')" >&2
-        return 1
-    fi
+    local answer
+    until flatpak remote-add --system --if-not-exists "$FLATPAK_REMOTE" https://dl.flathub.org/repo/flathub.flatpakrepo; do
+        echo "$(paimenos_text '  ! Flathub ist nicht erreichbar.')" >&2
+        answer=2
+        if [[ -t 0 ]]; then read -r -p "$(paimenos_text '1) Erneut versuchen  2) Debian-Pakete verwenden [1]: ')" answer; fi
+        if [[ "$answer" == 2 ]]; then
+            echo "$(paimenos_text '  ! Flathub ist nicht erreichbar; verwende Debian-Pakete.')" >&2
+            return 1
+        fi
+    done
     mkdir -p "${KIDS_HOME}/.config/xdg-desktop-portal"
     install_repo_file config/desktop/portals.conf "${KIDS_HOME}/.config/xdg-desktop-portal/portals.conf"
     chown -R "$KIDS_USER:$KIDS_USER" "${KIDS_HOME}/.config/xdg-desktop-portal" || return 1
