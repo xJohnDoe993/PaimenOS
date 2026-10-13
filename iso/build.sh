@@ -21,7 +21,7 @@ mkdir -p config/includes.chroot/opt/paimenos-source config/hooks/live config/pac
 install -m 0644 "$ROOT/iso/preseed.cfg" config/includes.binary/preseed.cfg
 # Tracked source only: no credentials, git history or previous build output.
 git -C "$ROOT" archive HEAD | tar -x -C config/includes.chroot/opt/paimenos-source
-printf '%s\n' 'live-boot live-config live-config-systemd linux-image-amd64 systemd-sysv locales sudo python3 ca-certificates network-manager wpasupplicant firmware-iwlwifi firmware-realtek firmware-atheros firmware-misc-nonfree' > config/package-lists/base.list.chroot
+printf '%s\n' 'live-boot live-config live-config-systemd linux-image-amd64 systemd-sysv locales sudo python3 ca-certificates network-manager wpasupplicant firmware-iwlwifi firmware-realtek firmware-atheros firmware-misc-nonfree whiptail kexec-tools' > config/package-lists/base.list.chroot
 cat > config/hooks/live/0900-paimenos.hook.chroot <<'HOOK'
 #!/bin/bash
 set -Eeuo pipefail
@@ -35,6 +35,12 @@ lb build
 xorriso -osirrox on -indev live-image-amd64.hybrid.iso \
     -extract /preseed.cfg "$BUILD/packaged-preseed.cfg"
 cmp "$ROOT/iso/preseed.cfg" "$BUILD/packaged-preseed.cfg"
+# Offline-Paketquelle auf die ISO legen (PAIMENOS_OFFLINE_REPO=0 überspringt das, z. B. für schnelle Tests).
+if [[ ${PAIMENOS_OFFLINE_REPO:-1} == 1 ]]; then
+    bash "$ROOT/iso/build-offline-repo.sh" "$BUILD/live-image-amd64.hybrid.iso"
+    xorriso -osirrox on -indev live-image-amd64.hybrid.iso -extract /preseed.cfg "$BUILD/packaged-preseed.cfg"
+    cmp "$ROOT/iso/preseed.cfg" "$BUILD/packaged-preseed.cfg"
+fi
 version=$(cat "$ROOT/VERSION")
 output="PaimenOS-${version}-debian13-amd64.iso"
 install -m 0644 live-image-amd64.hybrid.iso "$ROOT/dist/iso/$output"
