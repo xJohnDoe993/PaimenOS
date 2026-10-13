@@ -4,7 +4,7 @@
 
 <img src="assets/branding/paimenos-logo.png" alt="PaimenOS" width="240">
 
-PaimenOS macht einen Debian-Laptop zum Kinder-PC mit Kachelmenü, lokalen und webbasierten Eltern-Einstellungen, Bildschirmzeit, Kamera-/USB-Medien, Controller-Steuerung und auswählbaren Emulatoren.
+PaimenOS macht einen Debian-Laptop zum Kinder-PC mit Kachelmenü, webbasierten Eltern-Einstellungen (auch direkt am Gerät), Bildschirmzeit, Kamera-/USB-Medien, Controller-Steuerung und auswählbaren Emulatoren.
 
 **Version 0.64.0: LaurinOS heißt jetzt PaimenOS.** Paimen ist Finnisch für Schäfer. Oberfläche, Python-Paket, Dienste, Befehle, Datenverzeichnisse und Release-Dateien verwenden den neuen Namen. Diese Version benötigt eine Neuinstallation auf frischem Debian 12 oder 13; bestehende LaurinOS-Installationen werden nicht automatisch übernommen. Eigene Bilder, ROMs und Spielstände vor der Neuinstallation sichern.
 
@@ -24,7 +24,7 @@ Das Setup fragt eine neue Eltern-PIN, die gewünschten Apps, deren Paketquelle u
 sudo reboot
 ```
 
-Der Eltern-Webbereich ist anschließend unter `http://<IP-des-Geräts>/` erreichbar. Die gewählte PIN gilt auch am Laptop.
+Der Eltern-Webbereich ist anschließend unter `http://<IP-des-Geräts>/` erreichbar. Am Laptop öffnet ihn der Button **Eltern-Bereich** im Kopf des Menüs in einem eigenen Fenster; die PIN wird dort eingegeben.
 
 Bei einem abgebrochenen Setup kann dieselbe modulare Installation fortgesetzt werden:
 
@@ -97,7 +97,7 @@ Für die Entwicklung wird der Quellcode direkt bearbeitet. Auf dem Kindergerät 
 
 | Verzeichnis | Inhalt |
 |---|---|
-| `src/paimenos/` | Python-Paket: Menü, Elternbereich, Controller, WLAN/Bluetooth, Emulatoren, Bildschirmzeit |
+| `src/paimenos/` | Python-Paket: Menü, Eltern-Webbereich, Controller, WLAN/Bluetooth, Emulatoren, Bildschirmzeit |
 | `installer/` | Installation in thematischen Bash-Modulen; gemeinsame Helfer und Variablen |
 | `config/` | Openbox, Firefox, LightDM, Polkit, NetworkManager, TLP und weitere Systemkonfiguration |
 | `systemd/` | System- und Benutzerdienste |

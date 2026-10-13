@@ -5,7 +5,7 @@ Die lokale Prüfung mit `tools/check.py` deckt Syntax, Paketimporte, Ressourcen,
 ## Neuinstallation nach dem Neustart
 
 - Kinder-Menü startet durch LightDM; Kacheln öffnen die gewählten Programme.
-- Der Elternbereich am Gerät und unter `http://<IP>/` akzeptiert die selbst gesetzte PIN und weist eine falsche PIN ab.
+- Der Eltern-Bereich am Gerät (Button im Kopf des Menüs, öffnet den Webbereich) und unter `http://<IP>/` akzeptiert die selbst gesetzte PIN und weist eine falsche PIN ab.
 - App-Aktivierung, eigene Webapp, Bild-Upload und Einstellungen bleiben nach einem Neustart erhalten.
 - Tageslimit und Bonuszeit funktionieren; der Lockscreen lässt sich mit der Eltern-PIN entsperren.
 - Webapps zeigen Zurück/Weiter und schließen ohne fehlerhafte Absturzmeldung. Vollbildvideos prüfen.

@@ -7,9 +7,10 @@ import hmac
 import os
 import re
 import secrets
+import shutil
 import threading
 import time
-from paimenos.paths import ASSETS_DIR
+from paimenos.paths import ASSETS_DIR, STATE_DIR
 
 def _template(name):
     return (ASSETS_DIR / "parent-web" / name).read_text(encoding="utf-8")
@@ -634,6 +635,23 @@ def wifi_action():
         return jsonify(wifi_request(action, **values))
     except WifiError as exc:
         return jsonify(error=str(exc)), 503 if exc.unavailable else 409
+
+
+NETWORK_EDITOR_REQUEST = 'paimenos-menu.network-editor'
+
+
+@app.route('/wifi/advanced', methods=['POST'])
+def wifi_advanced():
+    """Der Netzwerkeditor (Firmen-/Schulnetze, VPN) ist ein Fenster am Laptop: Das Kindermenü öffnet es auf Anfrage."""
+    if not logged_in():
+        return jsonify(error=t('Bitte im Elternbereich anmelden.')), 401
+    if not shutil.which('nm-connection-editor'):
+        return jsonify(error=t('Der Netzwerkeditor fehlt. Bitte das WLAN-Update installieren.')), 409
+    try:
+        (STATE_DIR / NETWORK_EDITOR_REQUEST).touch()
+    except OSError:
+        return jsonify(error=t('Der Netzwerkeditor konnte nicht angefordert werden.')), 503
+    return jsonify(message=t('Der Netzwerkeditor öffnet sich am Laptop.'))
 
 
 @app.route('/diagnostics')

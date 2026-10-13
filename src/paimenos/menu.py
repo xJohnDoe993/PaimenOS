@@ -5,17 +5,17 @@ from paimenos.paths import STATE_DIR
 import json
 import os
 import shlex
+import shutil
 import subprocess
 import sys
 import fcntl
 import traceback
 import signal
+import socket
 from paimenos.images import (TaskSignals, submit_task, tuxpaint_command)
 from paimenos.diagnostics import collect_diagnostics, diagnostics_text, log_event
 from paimenos.state import read_settings, update_settings, atomic_json, app_with_current_title
-from paimenos.parent_ui import ParentDialog
-from paimenos.foreground import ForegroundGuard
-from paimenos.screen_guard import child_access_blocked, screen_time_expired, protected_view_active
+from paimenos.screen_guard import ActiveAppLease, child_access_blocked, screen_time_expired, protected_view_active
 from paimenos.categories import CATEGORIES, available_categories, filter_category
 from paimenos.controller import ControllerReader
 from paimenos.network_status import NetworkStatus
@@ -29,14 +29,24 @@ from PyQt5.QtCore import QLocale, Qt, QTimer, QTime, QDate, QSize, QPointF
 from PyQt5.QtGui import QFont, QIcon, QColor, QPainter
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QGridLayout, QVBoxLayout, QHBoxLayout,
-    QPushButton, QLabel, QMessageBox, QInputDialog, QDialog,
-    QLineEdit, QScrollArea, QAbstractScrollArea, QPlainTextEdit, QStyle,
+    QPushButton, QLabel, QMessageBox, QDialog,
+    QScrollArea, QAbstractScrollArea, QPlainTextEdit, QStyle,
     QStyleOption
 )
 
 APPS_FILE = str(CONFIG_DIR / "apps.json")
 SETTINGS_FILE = str(CONFIG_DIR / "settings.json")
 WEBAPP_BASE = os.path.expanduser("~/.mozilla/paimenos-webapps")
+PARENT_URL = "http://localhost/"
+
+
+def parent_area_reachable(host="127.0.0.1", port=80, timeout=1.0):
+    """Läuft der Webbereich? Sonst bekommt die Kachel eine Meldung statt eines leeren Browserfensters."""
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except OSError:
+        return False
 OVERLAY_SCRIPT = "/usr/local/lib/paimenos/current/run.py"
 
 GRID_SPACING = 14
@@ -601,35 +611,38 @@ class PaimenOSMenu(QWidget):
         event.accept()
 
     def open_parent_menu(self):
-        settings = load_json(SETTINGS_FILE)
-        correct_pin = settings["pin"]
+        """Der Eltern-Bereich ist der Webbereich (Port 80) in einem Browserfenster; die PIN gibt es dort."""
+        if not parent_area_reachable():
+            QMessageBox.warning(self, t('Eltern-Bereich'), t('Der Eltern-Bereich startet gerade nicht.\n'
+                                'Bitte kurz warten und erneut versuchen. Wenn es bleibt: Gerät neu starten.'))
+            return
+        self.launch({'id': 'parent-area', 'title': t('Eltern-Bereich'), 'url': PARENT_URL,
+                     'profile': 'parent-area', 'parent_area': True})
 
-        # Protect the PIN prompt as well as the authenticated parent view.
-        shield = QWidget()
-        shield.setObjectName('parentShield')
-        shield.setStyleSheet('QWidget#parentShield {background:#172335;}')
-        foreground = ForegroundGuard(shield)
-        shield.showFullScreen()
+    def handle_network_editor_request(self):
+        """Der Webbereich (Eltern-Bereich) bittet um den Netzwerkeditor; das Fenster öffnet sich über dem Browser."""
+        request_file = os.path.join(str(STATE_DIR), "paimenos-menu.network-editor")
+        if not os.path.exists(request_file):
+            return
+        os.unlink(request_file)
+        running = getattr(self, "network_editor", None)
+        editor = shutil.which("nm-connection-editor")
+        if not editor or child_access_blocked() or (running is not None and running.poll() is None):
+            return
         try:
-            pin, ok = QInputDialog.getText(
-                shield, t('🔒 Eltern-PIN'), t('Bitte Eltern-PIN eingeben:'), QLineEdit.Password
-            )
-            if ok and pin != correct_pin:
-                QMessageBox.warning(shield, t('Falsch'), t('Falscher PIN!'))
-        finally:
-            shield.hide()
-            foreground.release()
-            shield.deleteLater()
+            self.network_editor = subprocess.Popen([editor], start_new_session=True, env=application_environment(),
+                                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except OSError as exc:
+            log_event(t('Anwendung'), str(exc))
 
-        if ok and pin == correct_pin:
-            dlg = ParentDialog(self)
-            try:
-                if dlg.exec_() == QDialog.Accepted:
-                    self.reload_apps()
-            finally:
-                dlg.deleteLater()
-        if screen_time_expired():
-            self.hide_child_views()
+    def close_network_editor(self):
+        """Der Netzwerkeditor gehört zum Eltern-Bereich: Er bleibt nicht über dem Kinder-Menü stehen."""
+        editor = getattr(self, "network_editor", None)
+        if editor is not None and editor.poll() is None:
+            editor.terminate()
+            # nm-connection-editor ignoriert SIGTERM gelegentlich: nach kurzer Frist erzwingen.
+            QTimer.singleShot(2000, lambda: editor.poll() is None and editor.kill())
+        self.network_editor = None
 
     def hide_child_views(self):
         self.time_blocked = True
@@ -689,7 +702,8 @@ class PaimenOSMenu(QWidget):
                 profile = "webapp"
             profile_dir = os.path.join(WEBAPP_BASE, profile)
             user_js = os.path.expanduser("~/.mozilla/firefox/paimenos-user.js")
-            cmd = [sys.executable, '-I', OVERLAY_SCRIPT, 'close_overlay', '--browser', profile_dir, user_js, url]
+            mode = '--parent-browser' if item.get('parent_area') else '--browser'
+            cmd = [sys.executable, '-I', OVERLAY_SCRIPT, 'close_overlay', mode, profile_dir, user_js, url]
         else:
             cmd = shlex.split(item.get("command", ""))
             if cmd:
@@ -706,6 +720,7 @@ class PaimenOSMenu(QWidget):
             return
         self.return_window = return_window
         self.expected_exit_codes = {0}
+        self.release_app_lease()
         self.active_is_webapp = bool(url)
         self.overlay_proc = None
         try:
@@ -715,6 +730,9 @@ class PaimenOSMenu(QWidget):
             log_event(t('Anwendung'), "Start: " + os.path.basename(cmd[0]))
             self.active_process = subprocess.Popen(cmd, start_new_session=True, env=application_environment(),
                                                    stdout=self.application_log, stderr=self.application_log)
+            if not item.get('parent_area'):
+                # Aktive Bildschirmzeit: gezählt wird nur, solange diese Lease gehalten wird.
+                self.app_lease = ActiveAppLease()
         except Exception as exc:
             if getattr(self, "application_log", None):
                 self.application_log.close()
@@ -736,6 +754,8 @@ class PaimenOSMenu(QWidget):
         self.process_timer.deleteLater()
         if self.overlay_proc and self.overlay_proc.poll() is None:
             self.overlay_proc.terminate()
+        self.close_network_editor()
+        self.release_app_lease()
         code = self.active_process.returncode
         self.application_log.close()
         self.active_process = None
@@ -751,6 +771,12 @@ class PaimenOSMenu(QWidget):
                 QMessageBox.warning(target, "Webapp", t('Diese Webapp ist noch geöffnet oder wird gerade geschlossen.\nBitte kurz warten und erneut öffnen.'))
                 return
             QMessageBox.warning(target, t('Programmstart'), t('Das Programm wurde mit Fehlercode {value0} beendet.\nDetails stehen im Elternbereich unter Geräte-Diagnose.', value0=code))
+
+    def release_app_lease(self):
+        lease = getattr(self, 'app_lease', None)
+        self.app_lease = None
+        if lease is not None:
+            lease.close()
 
     def stop_for_shutdown(self):
         # KillMode=mixed sends SIGTERM only to this menu. Give the supervisor
@@ -816,6 +842,7 @@ class PaimenOSMenu(QWidget):
                 target.showFullScreen()
                 target.raise_()
                 target.activateWindow()
+        self.handle_network_editor_request()
         current_online = self.network_status.value()
         current_media = has_media_attached()
 

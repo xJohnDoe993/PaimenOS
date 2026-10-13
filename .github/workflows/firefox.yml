@@ -15,7 +15,6 @@ on:
       - 'src/paimenos/menu*.py'
       - 'src/paimenos/lockscreen.py'
       - 'src/paimenos/timer.py'
-      - 'src/paimenos/parent_ui.py'
       - 'src/paimenos/status_overlay.py'
       - 'src/paimenos/screen_guard.py'
       - 'src/paimenos/foreground.py'

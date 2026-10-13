@@ -150,12 +150,12 @@ class CloseButtonOverlay(QWidget):
 if __name__ == '__main__':
     # Reuse the established launcher target so desktop-only updates work with
     # the previous shared run.py too.
-    if len(sys.argv) > 1 and sys.argv[1] == '--browser':
+    if len(sys.argv) > 1 and sys.argv[1] in ('--browser', '--parent-browser'):
         from paimenos.browser import run_browser
         if len(sys.argv) != 5:
             raise SystemExit(t('Aufruf: close_overlay --browser PROFIL VORLAGE URL'))
         try:
-            raise SystemExit(run_browser(*sys.argv[2:]))
+            raise SystemExit(run_browser(*sys.argv[2:], ephemeral=sys.argv[1] == '--parent-browser'))
         except OSError as exc:
             print(t('Webapp konnte nicht gestartet werden: ') + str(exc), file=sys.stderr, flush=True)
             raise SystemExit(1)

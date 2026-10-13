@@ -12,15 +12,17 @@ def screen_time_expired():
         return True
 
 
-def _open_guard():
+def _open_guard(name='paimenos-protected-view.lock'):
     STATE_DIR.mkdir(parents=True, exist_ok=True)
-    return open(STATE_DIR / 'paimenos-protected-view.lock', 'a')
+    return open(STATE_DIR / name, 'a')
 
 
 class ViewGuard:
     """A live lease; process exit releases it without leaving a stale flag."""
+    lock_name = 'paimenos-protected-view.lock'
+
     def __init__(self):
-        self.file = _open_guard()
+        self.file = _open_guard(self.lock_name)
         try:
             fcntl.flock(self.file, fcntl.LOCK_SH)
         except BaseException:
@@ -31,9 +33,14 @@ class ViewGuard:
         self.file.close()
 
 
-def protected_view_active():
+class ActiveAppLease(ViewGuard):
+    """Held by the menu while a child application runs; only then screen time counts."""
+    lock_name = 'paimenos-active-app.lock'
+
+
+def _lease_held(name):
     try:
-        with _open_guard() as handle:
+        with _open_guard(name) as handle:
             try:
                 fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError:
@@ -41,6 +48,15 @@ def protected_view_active():
         return False
     except OSError:
         return True
+
+
+def protected_view_active():
+    return _lease_held(ViewGuard.lock_name)
+
+
+def app_active():
+    """True while a child application runs. Unknown state counts as active."""
+    return _lease_held(ActiveAppLease.lock_name)
 
 
 def child_access_blocked():

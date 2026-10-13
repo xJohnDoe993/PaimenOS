@@ -111,6 +111,27 @@ class GuardTests(GuardFixture, unittest.TestCase):
             if process.poll() is None:
                 process.kill(); process.communicate(timeout=3)
 
+    def test_screen_time_counts_only_while_an_application_runs(self):
+        self.save(daily_limit_minutes=60)
+        class EndLoop(Exception):
+            pass
+        def run(ticks, lease):
+            try:
+                with patch.object(timer.time, 'sleep', side_effect=[None] * (len(ticks) - 1) + [EndLoop]), \
+                        patch.object(timer.time, 'monotonic', side_effect=[0] + ticks), \
+                        patch.object(timer.subprocess, 'Popen'):
+                    with self.assertRaises(EndLoop):
+                        timer.run_timer()
+            finally:
+                if lease is not None:
+                    lease.close()
+        self.assertFalse(screen_guard.app_active())
+        run([5, 12, 20], None)  # Menü oder Eltern-Bereich: nichts zählt.
+        self.assertEqual(json.loads(self.settings_file.read_text())['today_used_seconds'], 0)
+        run([5, 12, 20], screen_guard.ActiveAppLease())
+        self.assertEqual(json.loads(self.settings_file.read_text())['today_used_seconds'], 12)
+        self.assertFalse(screen_guard.app_active())
+
     def test_timer_leaves_active_parent_view_in_front_then_starts_lock_on_close(self):
         self.save(today_used_seconds=60)
         class EndLoop(Exception):
@@ -138,7 +159,7 @@ try:
     from PyQt5.QtCore import QEvent, QRect, Qt, QTimer
     from PyQt5.QtGui import QCloseEvent, QKeyEvent
     from PyQt5.QtWidgets import QApplication, QDialog, QWidget
-    from paimenos import close_overlay, foreground, lockscreen, menu, parent_ui, status_overlay
+    from paimenos import close_overlay, foreground, lockscreen, menu, status_overlay
     HAS_QT = True
 except ImportError:
     HAS_QT = False
@@ -359,29 +380,63 @@ class WidgetGuardTests(GuardFixture, unittest.TestCase):
         window.update_clock_and_net()
         self.assertTrue(window.isVisible())
 
-    def test_parent_pin_prompt_has_fullscreen_opaque_priority_before_authentication(self):
+    def test_parent_area_opens_the_web_backend_in_a_throwaway_browser_profile(self):
         window = self.child_menu()
-        def prompt(shield, *args):
-            self.assertTrue(shield.isFullScreen())
-            self.assertTrue(screen_guard.protected_view_active())
-            self.assertTrue(shield.windowFlags() & Qt.WindowStaysOnTopHint)
-            return '', False
-        with patch.object(menu.QInputDialog, 'getText', side_effect=prompt):
+        with patch.object(menu, 'parent_area_reachable', return_value=True):
             window.open_parent_menu()
-        self.assertFalse(screen_guard.protected_view_active())
+        command = self.spawn.call_args.args[0]
+        self.assertEqual(command[3:5], ['close_overlay', '--parent-browser'])
+        self.assertTrue(command[5].endswith('parent-area'))
+        self.assertEqual(command[-1], menu.PARENT_URL)
+        self.assertTrue(window.active_is_webapp)
+        window.application_log.close()
 
-    def test_parent_dialog_is_fullscreen_and_releases_priority_after_close(self):
-        with patch.object(parent_ui.parents, 'managed_apps', return_value=[]), \
-                patch.object(parent_ui, 'submit_task'):
-            dialog = parent_ui.ParentDialog()
-        self.windows.append(dialog)
-        def inspect_and_close():
-            self.assertTrue(dialog.isFullScreen())
-            self.assertTrue(screen_guard.protected_view_active())
-            dialog.reject()
-        QTimer.singleShot(0, inspect_and_close)
-        dialog.exec_()
-        self.assertFalse(screen_guard.protected_view_active())
+    def test_parent_area_reports_a_stopped_web_backend_instead_of_opening_a_browser(self):
+        window = self.child_menu()
+        with patch.object(menu, 'parent_area_reachable', return_value=False), \
+                patch.object(menu.QMessageBox, 'warning') as warning:
+            window.open_parent_menu()
+        warning.assert_called_once()
+        self.spawn.assert_not_called()
+
+    def test_parent_area_is_not_reachable_without_a_listening_web_backend(self):
+        with patch.object(menu.socket, 'create_connection', side_effect=OSError):
+            self.assertFalse(menu.parent_area_reachable())
+        with patch.object(menu.socket, 'create_connection'):
+            self.assertTrue(menu.parent_area_reachable())
+
+    def test_network_editor_closes_together_with_the_parent_area(self):
+        window = self.child_menu()
+        editor = MagicMock(); editor.poll.return_value = None
+        window.network_editor = editor
+        with patch.object(menu.QTimer, 'singleShot') as later:
+            window.close_network_editor()
+        editor.terminate.assert_called_once()
+        self.assertEqual(later.call_args.args[0], 2000)
+        later.call_args.args[1]()  # reagiert der Editor nicht auf SIGTERM, wird er beendet
+        editor.kill.assert_called_once()
+        self.assertIsNone(window.network_editor)
+        window.close_network_editor()  # ohne Editor: nichts passiert
+
+    def test_network_editor_request_opens_the_editor_once_and_not_for_a_blocked_child(self):
+        window = self.child_menu()
+        request = Path(menu.STATE_DIR) / 'paimenos-menu.network-editor'
+        request.parent.mkdir(parents=True, exist_ok=True)
+        with patch.object(menu.shutil, 'which', return_value='/usr/bin/nm-connection-editor'):
+            request.touch()
+            window.handle_network_editor_request()
+            self.assertFalse(request.exists())
+            self.assertEqual(self.spawn.call_args.args[0], ['/usr/bin/nm-connection-editor'])
+            self.spawn.reset_mock()
+            self.spawn.return_value.poll.return_value = None  # läuft noch: keine zweite Instanz
+            request.touch()
+            window.handle_network_editor_request()
+            self.spawn.assert_not_called()
+            self.save(today_used_seconds=60)
+            self.spawn.return_value.poll.return_value = 0
+            request.touch()
+            window.handle_network_editor_request()
+            self.spawn.assert_not_called()
 
     def test_secondary_display_is_covered_and_tracks_geometry_changes(self):
         window = QWidget(); self.windows.append(window)

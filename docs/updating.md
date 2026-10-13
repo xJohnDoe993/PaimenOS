@@ -166,7 +166,7 @@ sudo bash update.sh --component backend --component network
 | Komponente | Inhalt |
 |---|---|
 | `shared` | Gemeinsame Pfade, Datenzugriff, Bilder, Diagnose, Webapp-CSS, OSD-Zustand und Launcher |
-| `desktop` | Menü, lokale Elternoberfläche, Timer, Medien und Overlays |
+| `desktop` | Menü, Timer, Medien und Overlays |
 | `controller` | Gerätefilter, Controller-Reader und Belegungsprofile |
 | `network` | WLAN, Bluetooth, lokale Dialoge und Netzwerkstatus |
 | `emulators` | Katalog, Spieleverwaltung, Installationsdienst und Client |

@@ -4,13 +4,14 @@ import errno
 import fcntl
 import os
 from pathlib import Path
+import shutil
 import signal
 import subprocess
 import sys
 import time
 
 from paimenos.paths import RELEASE_DIR
-from paimenos.webapp import browser_command, prepare_profile
+from paimenos.webapp import PARENT_PREFERENCES, browser_command, prepare_profile
 
 PROFILE_BUSY = 75
 CLOSE_TIMEOUT = 8
@@ -159,7 +160,23 @@ def stop_browser(process, timeout=CLOSE_TIMEOUT):
             continue
 
 
-def run_browser(profile, template, url, command=None, with_overlay=True):
+def wipe_profile(profile):
+    """Alles außer den eigenen Sperrdateien löschen (nur bei laufendem Zugriff durch den Aufrufer, nie bei offenem Firefox)."""
+    keep = {'.paimenos-launch.lock', '.parentlock'}
+    for entry in Path(profile).iterdir():
+        if entry.name in keep:
+            continue
+        try:
+            if entry.is_dir() and not entry.is_symlink():
+                shutil.rmtree(entry)
+            else:
+                entry.unlink()
+        except OSError:
+            pass
+
+
+def run_browser(profile, template, url, command=None, with_overlay=True, ephemeral=False):
+    """ephemeral: Profil vor dem Start leeren und nach dem Schließen wieder löschen (Eltern-Bereich)."""
     profile = os.path.realpath(profile)
     os.makedirs(profile, mode=0o700, exist_ok=True)
     stopping = False
@@ -188,7 +205,11 @@ def run_browser(profile, template, url, command=None, with_overlay=True):
                 print(t('Firefox-Profil ist noch durch einen anderen Prozess belegt.'), flush=True)
                 return PROFILE_BUSY
             # Never modify a running profile, or delete its cache/cookies/lock files.
-            prepare_profile(profile, template)
+            if ephemeral:
+                wipe_profile(profile)
+                prepare_profile(profile, template, PARENT_PREFERENCES)
+            else:
+                prepare_profile(profile, template)
             if stopping:
                 return 0
             process = subprocess.Popen(command or browser_command(profile, url), start_new_session=True)
@@ -220,6 +241,8 @@ def run_browser(profile, template, url, command=None, with_overlay=True):
             if not wait_for_profile(profile, timeout=5):
                 print(t('Firefox hat das Profil noch nicht freigegeben.'), flush=True)
                 return PROFILE_BUSY
+            if ephemeral:
+                wipe_profile(profile)
             if overlay_failed:
                 return 1
             return 0 if stopping else (code if code >= 0 else 1)

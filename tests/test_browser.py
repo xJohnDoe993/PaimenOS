@@ -161,6 +161,37 @@ class BrowserTests(unittest.TestCase):
             self.assertEqual(result, 1)
             self.assertTrue(all(child.poll() is not None for child in children))
 
+    def test_parent_area_profile_is_wiped_before_and_after_and_never_saves_the_pin(self):
+        # Das Skript steht für Firefox: Es meldet, was beim Start im Profil liegt, und hinterlässt eine "Anmeldung".
+        fake = ('import json, sys\nfrom pathlib import Path\n'
+                'p = Path(sys.argv[1]); out = Path(sys.argv[2])\n'
+                'out.write_text(json.dumps({"before": sorted(x.name for x in p.iterdir()), "user_js": (p / "user.js").read_text()}))\n'
+                '(p / "cookies.sqlite").write_text("Anmeldung des Elternbereichs")\n')
+        with tempfile.TemporaryDirectory() as folder, tempfile.TemporaryDirectory() as outside:
+            profile, report = Path(folder), Path(outside) / 'seen.json'
+            (profile / 'cookies.sqlite').write_text('Rest einer früheren Sitzung')
+            (profile / 'storage').mkdir(); (profile / 'storage' / 'x').write_text('x')
+            result = browser.run_browser(folder, '', 'http://localhost/', with_overlay=False, ephemeral=True,
+                                         command=[sys.executable, '-c', fake, folder, str(report)])
+            self.assertEqual(result, 0)
+            seen = __import__('json').loads(report.read_text())
+            self.assertNotIn('cookies.sqlite', seen['before'])   # alte Anmeldung vor dem Start entfernt
+            self.assertNotIn('storage', seen['before'])
+            self.assertIn('user_pref("signon.rememberSignons", false);', seen['user_js'])
+            self.assertIn('user_pref("privacy.clearOnShutdown.cookies", true);', seen['user_js'])
+            remaining = {p.name for p in profile.iterdir()}
+            self.assertNotIn('cookies.sqlite', remaining)         # und nach dem Schließen erneut
+            self.assertLessEqual(remaining, {'.paimenos-launch.lock', '.parentlock'})
+
+    def test_normal_webapp_profile_keeps_its_data(self):
+        with tempfile.TemporaryDirectory() as folder:
+            profile = Path(folder)
+            (profile / 'cookies.sqlite').write_text('Anmeldung einer Webapp')
+            command = [sys.executable, '-c', 'pass']
+            result = browser.run_browser(folder, '', 'https://example.test', command=command, with_overlay=False)
+            self.assertEqual(result, 0)
+            self.assertTrue((profile / 'cookies.sqlite').exists())
+
     def test_supervisor_signal_allows_flush_then_immediate_restart(self):
         with tempfile.TemporaryDirectory() as folder:
             profile = Path(folder)

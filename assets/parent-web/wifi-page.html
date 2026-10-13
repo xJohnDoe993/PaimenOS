@@ -12,7 +12,7 @@
 <section id="wifi-operation" class="panel" hidden><div class="row"><p id="wifi-operation-text"></p><button id="wifi-cancel" class="secondary">{{ t('Verbindungsaufbau abbrechen') }}</button></div></section>
 <section><h2>{{ t('Gespeicherte Netzwerke') }}</h2><p class="muted">{{ t('Das Passwort bleibt auf dem Laptop gespeichert. Mit „Vergessen“ wird die gespeicherte Verbindung entfernt.') }}</p><div id="wifi-saved" class="grid"></div></section>
 <section style="margin-top:28px"><div class="row"><h2>{{ t('Netzwerke in der Nähe') }}</h2><button id="wifi-hidden" class="secondary" disabled>{{ t('Verstecktes Netzwerk') }}</button></div><div id="wifi-found" class="grid"></div></section>
-<p class="hint" style="margin-top:24px">{{ t('Schul- und Firmennetze mit Benutzername oder Zertifikat sowie VPN lassen sich am Laptop über „Erweiterte Einstellungen“ einrichten.') }}</p>
+<section style="margin-top:24px"><p class="hint">{{ t('Schul- und Firmennetze mit Benutzername oder Zertifikat sowie VPN lassen sich im Netzwerkeditor am Laptop einrichten.') }}</p><button id="wifi-advanced" class="secondary" type="button">{{ t('Netzwerkeditor am Laptop öffnen') }}</button></section>
 <dialog id="wifi-dialog" aria-labelledby="wifi-dialog-title"><form id="wifi-form"><h2 id="wifi-dialog-title">{{ t('WLAN verbinden') }}</h2><div id="wifi-hidden-fields"><label for="wifi-ssid">{{ t('Netzwerkname (SSID)') }}</label><input id="wifi-ssid" maxlength="32" autocomplete="off"><label for="wifi-security">{{ t('Sicherheit') }}</label><select id="wifi-security"><option value="wpa-psk">WPA / WPA2</option><option value="sae">WPA3</option><option value="open">{{ t('Offen · ohne Passwort') }}</option></select></div><div id="wifi-password-fields"><label for="wifi-password">{{ t('WLAN-Passwort') }}</label><input id="wifi-password" type="password" maxlength="64" autocomplete="off"><label class="wifi-check"><input id="wifi-show" type="checkbox">{{ t('Passwort anzeigen') }}</label></div><p id="wifi-dialog-error" class="hint" role="alert"></p><p class="hint">{{ t('Das Netzwerk wird nach erfolgreicher Verbindung gespeichert.') }}</p><div class="actions"><button type="button" id="wifi-close" class="secondary">{{ t('Abbrechen') }}</button><button>{{ t('Verbinden') }}</button></div></form></dialog>
 <noscript><p class="flash error">{{ t('Für die WLAN-Verwaltung bitte JavaScript im Browser aktivieren.') }}</p></noscript>
 <script>
@@ -28,6 +28,12 @@
     if (response.status === 401 || response.redirected) { stopped = true; throw new Error(PaimenTranslate('Eltern-Sitzung abgelaufen. Bitte neu anmelden.')); }
     let data; try { data = await response.json(); } catch { throw new Error(PaimenTranslate('WLAN-Anfrage nicht möglich. Verbindung zum Laptop prüfen.')); }
     if (!response.ok) throw new Error(data.error || PaimenTranslate('WLAN-Anfrage fehlgeschlagen.')); return data;
+  }
+  async function openEditor() {
+    try {
+      const data = await fetchData({{ url_for('wifi_advanced')|tojson }}, {method:'POST',body:new URLSearchParams({csrf_token:csrf})});
+      notice(data.message, false);
+    } catch (error) { notice(error.message, true); }
   }
   async function act(action, values = {}) {
     if (sending) return;
@@ -55,7 +61,7 @@
   function connect(network) {
     if (!switchAllowed()) return;
     if (network.profile) { act('connect',{adapter:network.adapter,profile:network.profile}); return; }
-    if (!network.supported) { notice(PaimenTranslate('Dieses Netzwerk bitte am Laptop über „Erweiterte Einstellungen“ einrichten.')); return; }
+    if (!network.supported) { notice(PaimenTranslate('Dieses Netzwerk bitte im Netzwerkeditor am Laptop einrichten.')); return; }
     if (['open','owe'].includes(network.key)) act('connect',{adapter:network.adapter,network:network.path}); else openCredentials(network);
   }
   function card(item, saved, adapter, ready) {
@@ -124,6 +130,7 @@
   $('wifi-scan').addEventListener('click',() => act('scan',{adapter:$('wifi-adapter').value}));
   $('wifi-cancel').addEventListener('click',() => act('cancel'));
   $('wifi-hidden').addEventListener('click',() => {if(switchAllowed()) openCredentials();});
+  $('wifi-advanced').addEventListener('click', openEditor);
   $('wifi-security').addEventListener('change',updatePassword);
   $('wifi-show').addEventListener('change',() => {$('wifi-password').type=$('wifi-show').checked ? 'text':'password';});
   $('wifi-close').addEventListener('click',() => $('wifi-dialog').close());
