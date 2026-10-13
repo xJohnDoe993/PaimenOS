@@ -19,7 +19,7 @@ class DNSTests(unittest.TestCase):
         self.setup.resolv.parent.mkdir(parents=True)
         self.setup.resolv.write_text('nameserver 192.168.10.1\n')
         self.source = self.root / 'family.conf'
-        self.source.write_text('[Resolve]\nDNS=185.228.168.168 185.228.169.168\n')
+        self.source.write_text('[Resolve]\nDNS=1.1.1.3 1.0.0.3 94.140.14.15 94.140.15.16\n')
         stub = self.root / 'run/systemd/resolve/stub-resolv.conf'
         stub.parent.mkdir(parents=True); stub.write_text('nameserver 127.0.0.53\n')
     def tearDown(self): self.temp.cleanup()

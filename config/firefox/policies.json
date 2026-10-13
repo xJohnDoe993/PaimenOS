@@ -1,6 +1,11 @@
 {
   "policies": {
-    "DNSOverHTTPS": { "Enabled": false, "Locked": true },
+    "DNSOverHTTPS": {
+      "Enabled": true,
+      "ProviderURL": "https://family.adguard-dns.com/dns-query",
+      "Locked": true,
+      "Fallback": true
+    },
     "DisableTelemetry": true,
     "DisablePocket": true,
     "DisableDeveloperTools": true,

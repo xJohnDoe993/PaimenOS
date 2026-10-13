@@ -94,6 +94,8 @@ Die globale Familien-DNS-Konfiguration setzt `Domains=~.`: Normale Internetabfra
 
 `update.sh` und das Backend-Update ersetzen keine Systemkonfiguration. Auf bereits installierten Geräten muss diese DNS-Änderung daher separat angewendet werden.
 
+Als Familien-DNS dienen Cloudflare Family (`1.1.1.3`, `1.0.0.3`) und AdGuard DNS Family (`94.140.14.15`, `94.140.15.16`); beide blocken Erwachseneninhalte und Schadseiten, AdGuard erzwingt zusätzlich SafeSearch. Am 13. Oktober 2026 wurden alle vier mit 20 Abfragen je Server geprüft: 100 % erreichbar, im Mittel 23 bis 40 ms, `pornhub.com` und `xvideos.com` werden geblockt. Der zuvor genutzte zweite CleanBrowsing-Server (`185.228.169.168`) beantwortete im selben Test nur 16 von 20 Abfragen. Firefox nutzt zusätzlich per Richtlinie DNS über HTTPS mit `https://family.adguard-dns.com/dns-query` (gesperrt, mit Rückfall auf das System-DNS). Da Firefox über den lokalen Squid-Proxy surft, löst meist der Proxy die Namen auf (Systemresolver); DoH greift für Namen, die Firefox selbst auflöst. Auf bereits eingerichteten Geräten wirkt die Änderung nach `sudo python3 tools/configure-dns.py family config/resolved/paimenos-family-dns.conf` und einem Firefox-Neustart (Richtlinien in `/etc/firefox/policies/`).
+
 Die DNS-Sicherung liegt root-eigen unter `/var/lib/paimenos/install-dns.json`. Die Bootstrap-Konfiguration bleibt bis zur erfolgreichen Familien-DNS-Übernahme erhalten; sie kann auch eine bewusst gesetzte temporäre DNS-Reparatur übernehmen. Die Prüfungen bestätigen Namensauflösung, nicht die Filterwirkung auf jeder Netzwerkverbindung.
 
 ## Schalter
