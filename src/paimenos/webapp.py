@@ -2,6 +2,7 @@
 from paimenos.i18n import t, browser_locale
 import json
 import os
+import re
 from paimenos.paths import ASSETS_DIR
 from paimenos import hardware_profile, theme
 from paimenos.state import read_settings
@@ -12,7 +13,10 @@ MENU_WIDTH = 160
 CHROME_IMPORT = '@import url("paimenos-webapp.css");'
 BEGIN = '// PaimenOS Webapp-Navigation: Anfang'
 END = '// PaimenOS Webapp-Navigation: Ende'
-PREFERENCES = '''user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
+PREFERENCES = '''user_pref("network.proxy.type", 0);
+user_pref("cookiebanners.service.mode", 1);
+user_pref("cookiebanners.service.mode.privateBrowsing", 1);
+user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
 user_pref("browser.fullscreen.autohide", false);
 user_pref("browser.tabs.drawInTitlebar", true);
 user_pref("browser.startup.page", 0);
@@ -90,6 +94,9 @@ def read_text(path):
         return ''
 
 
+LEGACY_PROXY = re.compile(r'^\s*user_pref\("network\.proxy\.[a-z_]+",.*\);\s*$', re.M)
+
+
 def prepare_profile(profile_dir, template, extra_preferences=''):
     os.makedirs(profile_dir, exist_ok=True)
     user_path = os.path.join(profile_dir, 'user.js')
@@ -97,6 +104,9 @@ def prepare_profile(profile_dir, template, extra_preferences=''):
     if BEGIN in current and END in current:
         before, rest = current.split(BEGIN, 1)
         current = before + rest.split(END, 1)[1]
+    # Früher lief der Browser über einen lokalen Squid-Proxy (127.0.0.1:3128); Vorlagen älterer
+    # Installationen enthalten diese Einstellungen noch. Der Proxy ist abgeschaltet, also entfernen.
+    current = LEGACY_PROXY.sub('', current)
     languages = 'en-US,en' if browser_locale() == 'en' else 'de-DE,de,en-US,en'
     locale_preferences = (
         'user_pref("intl.locale.requested", ' + json.dumps(browser_locale()) + ');\n'

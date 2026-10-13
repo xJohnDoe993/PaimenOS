@@ -11,7 +11,7 @@ zweite Oberfläche mehr zu pflegen.
 1. Der Button prüft, ob der Webdienst auf Port 80 antwortet. Sonst erscheint eine Meldung (Dienst
    `paimenos-parent-web.service`), kein leeres Browserfenster.
 2. Das Menü startet `close_overlay --parent-browser` mit dem Profil `~/.mozilla/paimenos-webapps/parent-area` und
-   der Adresse `http://localhost/` (der Proxy wird für localhost umgangen, es geht kein Datenverkehr ins Netz).
+   der Adresse `http://localhost/` (es geht kein Datenverkehr ins Netz).
 3. Die Eltern geben die PIN auf der Anmeldeseite des Webbereichs ein (5 Versuche pro Minute, danach Pause).
 4. **Zum Menü** beendet das Fenster; das Menü lädt Änderungen an Apps und Einstellungen selbst nach.
 
