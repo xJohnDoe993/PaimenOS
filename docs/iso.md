@@ -10,7 +10,10 @@ verfügbar; der Workflow veröffentlicht keinen Release.
 1. ISO auf einen USB-Stick schreiben und davon booten.
 2. Im Bootmenü den Debian-Installer starten. Systemsprache, Zielplatte und Administrator-Zugang
    selbst wählen; als Administrator einen anderen Namen als `kids` verwenden.
-3. Installation abschließen, USB-Stick entfernen und neu starten.
+3. Installation abschließen und neu starten. Den USB-Stick **stecken lassen**, wenn
+   das Gerät beim Setup kein Internet hat (siehe [Offline-Installation](#offline-installation));
+   mit Internet darf er entfernt werden. Beim Start nicht vom Stick booten,
+   sondern von der Platte.
 4. Auf der ersten Textkonsole erscheint die PaimenOS-Einrichtung automatisch.
    Bei Bedarf mit **1** über `nmtui` WLAN einrichten; mit **2** das Setup starten.
    **4** zeigt die Netzwerkdiagnose und prüft den Paketabruf ausschließlich per IPv4.
@@ -21,6 +24,39 @@ Die PaimenOS-Einrichtung übernimmt die im Debian-Installer gewählte Systemspra
 Englisch führt zu englischen Setup-Dialogen und englischsprachigen Standard-Webapps.
 Unter Debian 13 gilt `/etc/locale.conf` vor einem älteren Eintrag in
 `/etc/default/locale`; unter Debian 12 wird weiterhin dessen Locale-Datei verwendet.
+
+## Offline-Installation
+
+Die ISO enthält neben dem Debian-Grundsystem eine signierte Offline-Paketquelle
+(`/paimenos-repo`, rund 0,9 GB): alle Debian-Pakete des PaimenOS-Kerns
+(Kinderoberfläche, Eltern-Webbereich, Firefox, Controller, WLAN, Energiesparen,
+Firmware) plus eine kleine App-Auswahl (Tux Paint, Geany, Tux Math, SuperTux).
+Die Liste steht in `installer/offline-packages.txt`; ein Test hält sie mit
+`installer/10-system.sh` und `installer/20-hardware.sh` synchron.
+
+- **Online bevorzugt:** Das Setup prüft zuerst das Internet. Funktioniert es,
+  läuft alles wie bisher mit aktuellen Paketen und voller App-Auswahl.
+- **Ohne Internet** bindet das Setup das Installationsmedium (Volume-Label
+  `PAIMENOS`) ein und installiert daraus (`PAIMENOS_OFFLINE=1`). **Der USB-Stick
+  muss bis zum Ende des Setups stecken bleiben.** Beim Neustart nach der
+  Debian-Installation also nicht entfernen.
+- **Im Offline-Modus entfallen:** Emulatoren, Flathub-Apps, die übrigen Apps,
+  Sprachausgabe (Piper) und die heruntergeladenen Webseiten-Logos. Alles lässt sich
+  später mit Internet nachinstallieren (Eltern-Bereich bzw.
+  `install-paimenos-speech.py`). Das fertige System hat danach normale Debian-
+  Online-Quellen für Updates.
+- **Signatur:** Der Build signiert das Repo. Mit dem GitHub-Secret
+  `PAIMENOS_REPO_SIGNING_KEY` (privater Schlüssel, ASCII-armored) signiert er mit
+  dem Projektschlüssel, ohne Secret mit einem Einmalschlüssel dieses Builds. Der
+  öffentliche Schlüssel liegt als `paimenos-repo.gpg` im Repo, der Fingerabdruck in
+  `FINGERPRINT`. Schlüssel erzeugen:
+  `gpg --quick-generate-key 'PaimenOS Offline-Repo <offline@paimenos.invalid>' ed25519 sign never`,
+  dann `gpg --armor --export-secret-keys <ID>` als Secret hinterlegen.
+- **Bau:** `iso/build-offline-repo.sh` läuft am Ende von `iso/build.sh`
+  (`PAIMENOS_OFFLINE_REPO=0` überspringt es für schnelle Testbauten). Es lädt die
+  Pakete im fertigen Live-System per `apt-get install --download-only` mit denselben
+  Optionen wie das Setup und fügt das Repo mit `xorriso` ein, ohne die Bootkonfiguration
+  zu ändern.
 
 Das ISO enthält das Debian-Grundsystem, NetworkManager, WLAN-Firmware und
 root-eigenen PaimenOS-Quellcode. Es installiert beim ISO-Bau keine Kinderprogramme,

@@ -17,6 +17,19 @@ echo " 10) Tux Math        11) VLC             12) Terminal"
 echo "$(paimenos_text ' 13) Überspringen / Keine')"
 echo
 
+OFFLINE_AVAILABLE=""
+if [[ "${PAIMENOS_OFFLINE:-0}" == 1 ]]; then
+    declare -A OFFLINE_APP_PACKAGES=([1]=scratch [2]=tuxpaint [3]=libreoffice [4]=gimp [5]=geany [6]=minetest
+        [7]=supertuxkart [8]=supertux [9]=gcompris-qt [10]=tuxmath [11]=vlc [12]=xterm)
+    for number in $(printf '%s\n' "${!OFFLINE_APP_PACKAGES[@]}" | sort -n); do
+        candidate=$(LC_ALL=C apt-cache policy "${OFFLINE_APP_PACKAGES[$number]}" 2>/dev/null | awk '/Candidate:/ {print $2; exit}')
+        if [[ -n "$candidate" && "$candidate" != "(none)" ]]; then OFFLINE_AVAILABLE+="$number "; fi
+    done
+    echo "$(paimenos_text 'Offline-Modus: Auf dem Installationsmedium gibt es nur diese Apps: {value0}' "${OFFLINE_AVAILABLE:-–}")"
+    echo "$(paimenos_text 'Alle anderen Apps lassen sich später mit Internet nachinstallieren.')"
+    echo
+fi
+
 APP_SELECTION="${PAIMENOS_APPS:-}"
 if [[ -z "$APP_SELECTION" ]]; then read -r -p "$(paimenos_text 'Auswahl: ')" APP_SELECTION; fi
 
@@ -36,6 +49,16 @@ case "$APP_SOURCE" in
     flathub|debian) ;;
     *) echo "$(paimenos_text 'PAIMENOS_APP_SOURCE muss flathub oder debian sein.')" >&2; exit 1 ;;
 esac
+
+# Offline nur Apps, die die Offline-Paketquelle des Installationsmediums enthält.
+if [[ "${PAIMENOS_OFFLINE:-0}" == 1 ]]; then
+    APP_SOURCE=debian
+    FILTERED_SELECTION=""
+    for choice in ${APP_SELECTION}; do
+        if [[ " $OFFLINE_AVAILABLE" == *" $choice "* ]]; then FILTERED_SELECTION+="$choice "; fi
+    done
+    APP_SELECTION="$FILTERED_SELECTION"
+fi
 
 INSTALL_PKGS=()
 APP_ENTRIES=""

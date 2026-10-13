@@ -35,6 +35,12 @@ lb build
 xorriso -osirrox on -indev live-image-amd64.hybrid.iso \
     -extract /preseed.cfg "$BUILD/packaged-preseed.cfg"
 cmp "$ROOT/iso/preseed.cfg" "$BUILD/packaged-preseed.cfg"
+# Offline-Paketquelle auf die ISO legen (PAIMENOS_OFFLINE_REPO=0 überspringt das, z. B. für schnelle Tests).
+if [[ ${PAIMENOS_OFFLINE_REPO:-1} == 1 ]]; then
+    bash "$ROOT/iso/build-offline-repo.sh" "$BUILD/live-image-amd64.hybrid.iso" "$BUILD/chroot"
+    xorriso -osirrox on -indev live-image-amd64.hybrid.iso -extract /preseed.cfg "$BUILD/packaged-preseed.cfg"
+    cmp "$ROOT/iso/preseed.cfg" "$BUILD/packaged-preseed.cfg"
+fi
 version=$(cat "$ROOT/VERSION")
 output="PaimenOS-${version}-debian13-amd64.iso"
 install -m 0644 live-image-amd64.hybrid.iso "$ROOT/dist/iso/$output"

@@ -21,15 +21,19 @@ jobs:
           persist-credentials: false
       - name: ISO in Debian 13 bauen
         shell: bash
+        env:
+          # Optional: privater Signaturschlüssel (ASCII-armored) für die Offline-Paketquelle.
+          # Ohne Secret signiert der Build mit einem Einmalschlüssel.
+          PAIMENOS_REPO_SIGNING_KEY: ${{ secrets.PAIMENOS_REPO_SIGNING_KEY }}
         run: |
           set -o pipefail
           mkdir -p dist/iso
-          docker run --rm --privileged \
+          docker run --rm --privileged -e PAIMENOS_REPO_SIGNING_KEY \
             --mount type=bind,src="$GITHUB_WORKSPACE",dst=/source \
             --workdir /source debian:trixie \
             bash -Eeuo pipefail -c '
               apt-get update
-              apt-get install -y --no-install-recommends python3 python3-flask python3-pyqt5 python3-pyqt5.qtmultimedia qttranslations5-l10n python3-xlib libqt5multimedia5-plugins live-build debootstrap git ca-certificates xorriso squashfs-tools grub-pc-bin grub-efi-amd64-bin mtools dosfstools
+              apt-get install -y --no-install-recommends python3 python3-flask python3-pyqt5 python3-pyqt5.qtmultimedia qttranslations5-l10n python3-xlib libqt5multimedia5-plugins live-build debootstrap git ca-certificates xorriso squashfs-tools gnupg apt-utils grub-pc-bin grub-efi-amd64-bin mtools dosfstools
               git config --global --add safe.directory /source
               QT_QPA_PLATFORM=offscreen python3 -B tools/check.py
               bash iso/build.sh
