@@ -1,0 +1,116 @@
+<div class="pagehead"><h1>{{ t('Flatpak-Apps') }}</h1><p>{{ t('Zusätzliche Apps aus Flathub suchen, installieren und wieder entfernen. Neue Apps erscheinen automatisch im Kinder-Menü; unter „Apps“ lassen sie sich ausblenden.') }}</p></div>
+<section class="panel"><h2>{{ t('Apps suchen') }}</h2><p class="hint">{{ t('Dafür wird eine Internetverbindung benötigt. Flathub enthält auch Apps, die nicht für Kinder gedacht sind: Bitte vor dem Installieren prüfen.') }}</p>
+<form id="flatpak-search-form" method="get" action="{{ url_for('flatpak_search') }}"><div class="formgrid"><div><label for="flatpak-term">{{ t('Suchbegriff') }}</label><input id="flatpak-term" name="q" minlength="2" maxlength="80" required autocomplete="off"></div></div><div class="actions"><button>{{ t('Suchen') }}</button></div></form>
+<p id="flatpak-search-state" role="status" aria-live="polite"></p><div id="flatpak-results" class="grid"></div></section>
+<form id="flatpak-token" method="post" action="{{ url_for('flatpak_install_action') }}" hidden></form>
+<section class="panel" id="flatpak-progress" hidden><h2>{{ t('Fortschritt') }}</h2><p id="flatpak-message" role="status" aria-live="polite"></p><progress id="flatpak-bar" max="100" value="0" style="width:100%;height:18px" aria-label="{{ t('Fortschritt') }}"></progress><details><summary>{{ t('Protokoll') }}</summary><pre id="flatpak-log"></pre></details></section>
+<p id="flatpak-error" role="alert"></p>
+<section class="panel"><h2>{{ t('Installierte Flatpak-Apps') }}</h2><p class="hint">{{ t('Nur Apps, die PaimenOS installiert hat. Beim Entfernen verschwindet auch die Kachel im Kinder-Menü.') }}</p><div id="flatpak-installed" class="grid">{% for item in installed %}<section class="card" data-app="{{ item.app_id }}"><h3>{{ item.name }}</h3><p class="hint">{{ item.app_id }}{% if item.version %} · {{ item.version }}{% endif %}</p><button type="button" class="danger" data-remove="{{ item.app_id }}">{{ t('Deinstallieren') }}</button></section>{% else %}<p class="hint" id="flatpak-none">{{ t('Noch keine Flatpak-Apps installiert.') }}</p>{% endfor %}</div></section>
+<script>(() => {
+  const token = document.querySelector('#flatpak-token input[name=csrf_token]').value;
+  const error = document.getElementById('flatpak-error');
+  const state = document.getElementById('flatpak-search-state');
+  const results = document.getElementById('flatpak-results');
+  const installedBox = document.getElementById('flatpak-installed');
+  const progress = document.getElementById('flatpak-progress');
+  const message = document.getElementById('flatpak-message');
+  const bar = document.getElementById('flatpak-bar');
+  const log = document.getElementById('flatpak-log');
+  let busy = false, timer = null;
+  function el(tag, text, className) { const node = document.createElement(tag); if (text) node.textContent = text; if (className) node.className = className; return node; }
+  async function api(url, options = {}) {
+    const response = await fetch(url, {...options, headers: {'Accept': 'application/json'}, cache: 'no-store'});
+    if (response.status === 401) throw new Error(PaimenTranslate('Bitte erneut im Elternbereich anmelden.'));
+    let data;
+    try { data = await response.json(); } catch (_) { throw new Error(PaimenTranslate('Formular abgelaufen oder Dienst nicht erreichbar. Bitte Seite neu laden.')); }
+    if (!response.ok || !data.ok) throw new Error(data.error || PaimenTranslate('Anfrage fehlgeschlagen.'));
+    return data;
+  }
+  function setBusy(value) {
+    busy = value;
+    document.querySelectorAll('[data-install],[data-remove],[data-confirm-remove]').forEach(button => button.disabled = value);
+  }
+  function renderInstalled(items) {
+    installedBox.replaceChildren();
+    if (!items.length) { const none = el('p', PaimenTranslate('Noch keine Flatpak-Apps installiert.'), 'hint'); none.id = 'flatpak-none'; installedBox.append(none); return; }
+    items.forEach(item => {
+      const card = el('section', '', 'card');
+      card.append(el('h3', item.name), el('p', item.app_id + (item.version ? ' · ' + item.version : ''), 'hint'));
+      const button = el('button', PaimenTranslate('Deinstallieren'), 'danger');
+      button.type = 'button'; button.dataset.remove = item.app_id; button.disabled = busy;
+      button.addEventListener('click', () => askRemove(card, item, button));
+      card.append(button); installedBox.append(card);
+    });
+  }
+  function askRemove(card, item, button) {
+    button.hidden = true;
+    const box = el('div', '', 'actions');
+    const label = el('label'); label.style.cssText = 'display:flex;align-items:center;gap:10px;margin:10px 0';
+    const check = document.createElement('input'); check.type = 'checkbox'; check.style.cssText = 'width:auto;min-height:auto';
+    label.append(check, document.createTextNode(' ' + PaimenTranslate('Auch die gespeicherten Daten der App löschen')));
+    const yes = el('button', PaimenTranslate('Ja, deinstallieren'), 'danger'); yes.type = 'button'; yes.dataset.confirmRemove = item.app_id; yes.disabled = busy;
+    const no = el('button', PaimenTranslate('Abbrechen'), 'secondary'); no.type = 'button';
+    no.addEventListener('click', () => { box.remove(); button.hidden = false; });
+    yes.addEventListener('click', () => start('/flatpaks/remove', item.app_id, {delete_data: check.checked ? '1' : '0'}));
+    box.append(yes, no); card.append(label, box);
+  }
+  function showJob(data) {
+    const job = data.flatpak_job;
+    setBusy(job.state === 'running');
+    progress.hidden = job.state === 'idle';
+    message.textContent = job.message || '';
+    bar.value = job.percent || 0;
+    log.textContent = (job.log || []).join('\n');
+    if (data.installed) renderInstalled(data.installed);
+    if (job.state === 'error') error.textContent = job.message || PaimenTranslate('Anfrage fehlgeschlagen.');
+    return job.state;
+  }
+  async function poll() {
+    try {
+      const job = showJob(await api('{{ url_for("flatpak_status") }}'));
+      if (job === 'running') { timer = window.setTimeout(poll, 2000); }
+      else if (!results.hidden) { markInstalled(); }
+    } catch (exception) { error.textContent = exception.message; setBusy(false); }
+  }
+  async function markInstalled() {
+    const names = new Set(Array.from(installedBox.querySelectorAll('[data-remove]')).map(b => b.dataset.remove));
+    results.querySelectorAll('[data-install]').forEach(button => {
+      if (names.has(button.dataset.install)) { button.hidden = true; button.parentElement.querySelector('.badge').hidden = false; }
+    });
+  }
+  async function start(url, appId, extra = {}) {
+    if (busy) return;
+    const values = new FormData();
+    values.append('csrf_token', token); values.append('app_id', appId);
+    Object.entries(extra).forEach(([key, value]) => values.append(key, value));
+    error.textContent = ''; setBusy(true);
+    try { showJob(await api(url, {method: 'POST', body: values})); window.clearTimeout(timer); timer = window.setTimeout(poll, 1500); }
+    catch (exception) { error.textContent = exception.message; setBusy(false); }
+  }
+  function renderResults(items) {
+    results.replaceChildren();
+    items.forEach(item => {
+      const card = el('section', '', 'card');
+      if (item.icon) { const img = document.createElement('img'); img.src = item.icon; img.alt = ''; img.width = 48; img.height = 48; img.loading = 'lazy'; img.referrerPolicy = 'no-referrer'; card.append(img); }
+      card.append(el('h3', item.name), el('p', item.summary, 'hint'), el('p', item.app_id, 'hint'));
+      const badge = el('span', PaimenTranslate('Installiert'), 'badge on'); badge.hidden = !item.installed;
+      const button = el('button', PaimenTranslate('Installieren')); button.type = 'button'; button.dataset.install = item.app_id; button.hidden = item.installed; button.disabled = busy;
+      button.addEventListener('click', () => start('/flatpaks/install', item.app_id));
+      card.append(badge, button); results.append(card);
+    });
+  }
+  document.getElementById('flatpak-search-form').addEventListener('submit', async event => {
+    event.preventDefault(); error.textContent = ''; state.textContent = PaimenTranslate('Suche läuft …'); results.replaceChildren();
+    try {
+      const term = document.getElementById('flatpak-term').value;
+      const data = await api('{{ url_for("flatpak_search") }}?q=' + encodeURIComponent(term));
+      state.textContent = data.results.length ? '' : PaimenTranslate('Keine passenden Apps gefunden.');
+      renderResults(data.results);
+    } catch (exception) { state.textContent = ''; error.textContent = exception.message; }
+  });
+  installedBox.querySelectorAll('[data-remove]').forEach(button => {
+    const card = button.closest('.card');
+    button.addEventListener('click', () => askRemove(card, {app_id: button.dataset.remove}, button));
+  });
+  poll();
+})();</script>

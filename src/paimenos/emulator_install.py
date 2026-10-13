@@ -10,8 +10,8 @@ class InstallError(ValueError):
     pass
 
 
-def install_request(action='status', systems=None):
-    request = {'action': action}
+def install_request(action='status', systems=None, **fields):
+    request = {'action': action, **fields}
     if systems is not None:
         request['systems'] = systems
     try:

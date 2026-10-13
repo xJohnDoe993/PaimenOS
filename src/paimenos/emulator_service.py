@@ -403,8 +403,10 @@ def allowed_peer(connection, kids_uid):
 
 
 def serve():
+    from paimenos.flatpak_service import FlatpakJobs
     kids_uid = pwd.getpwnam('kids').pw_uid
     jobs = Jobs()
+    flatpaks = FlatpakJobs(lock=installation_lock)
 
     class Handler(socketserver.StreamRequestHandler):
         def handle(self):
@@ -422,6 +424,11 @@ def serve():
                     result = {'job': jobs.snapshot(), 'systems': status()}
                 elif data.get('action') == 'install':
                     result = {'job': jobs.start(data.get('systems'))}
+                elif data.get('action') == 'flatpak_status':
+                    result = {'flatpak_job': flatpaks.snapshot()}
+                elif data.get('action') in ('flatpak_install', 'flatpak_remove'):
+                    result = {'flatpak_job': flatpaks.start(data['action'].split('_', 1)[1], data.get('app_id'),
+                                                            data.get('delete_data') is True)}
                 else:
                     raise ValueError(t('Unbekannte Aktion.'))
                 response = {'ok': True, **result}

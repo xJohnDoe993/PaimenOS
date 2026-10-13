@@ -20,6 +20,7 @@ from flask import Flask, abort, flash, redirect, render_template_string, request
 import paimenos.parent as parents
 import paimenos.emulators as emulators
 from paimenos.emulator_install import install_request, InstallError
+import paimenos.flatpak_store as flatpak_store
 import paimenos.controller_profiles as controllers
 from paimenos.pronunciation import default_pronunciation
 from paimenos.state import read_settings
@@ -114,7 +115,7 @@ def render(body, title=None, section='dashboard'):
     field = '<input type="hidden" name="csrf_token" value="' + csrf_token() + '">'
     body = re.sub(r'(<form\b[^>]*method="post"[^>]*>)', lambda m: m.group(1) + field, body)
     # Grouped like the local parent area: child, connections, system.
-    nav = [[(t('Übersicht'), 'dashboard'), (t('Bildschirmzeit'), 'time_page'), ('Apps', 'apps_page'), (t('Emulatoren'), 'emulators_page')],
+    nav = [[(t('Übersicht'), 'dashboard'), (t('Bildschirmzeit'), 'time_page'), ('Apps', 'apps_page'), (t('Emulatoren'), 'emulators_page'), (t('Flatpak-Apps'), 'flatpaks_page')],
            [(t('WLAN'), 'wifi_page'), ('Bluetooth', 'bluetooth_page'), ('Controller', 'controllers_page')],
            [(t('USB-Backups'), 'backups_page'), ('Updates', 'updates_page'), (t('Einstellungen'), 'settings_page'), (t('Diagnose'), 'diagnostics_page')]]
     return render_template_string(BASE, body=body, title=title, section=section,
@@ -269,6 +270,57 @@ def emulator_install_action():
             return jsonify(ok=False, error=str(exc)), 400
         flash(str(exc), 'error')
     return redirect(url_for('emulators_page'))
+
+
+@app.route('/flatpaks')
+@login_required
+def flatpaks_page():
+    body = render_template_string(_template('flatpaks.html'), installed=flatpak_store.installed())
+    return render(body, t('Flatpak-Apps'), 'flatpaks_page')
+
+
+@app.get('/flatpaks/search')
+def flatpak_search():
+    if not logged_in():
+        return jsonify(ok=False, error=t('Bitte anmelden.')), 401
+    try:
+        results = flatpak_store.search(request.args.get('q', ''))
+    except flatpak_store.StoreError as exc:
+        return jsonify(ok=False, error=str(exc)), 400
+    installed = {item['app_id'] for item in flatpak_store.installed()}
+    return jsonify(ok=True, results=[dict(item, installed=item['app_id'] in installed) for item in results])
+
+
+@app.get('/flatpaks/status')
+def flatpak_status():
+    if not logged_in():
+        return jsonify(ok=False, error=t('Bitte anmelden.')), 401
+    try:
+        return jsonify({**install_request('flatpak_status'), 'installed': flatpak_store.installed()})
+    except InstallError as exc:
+        return jsonify(ok=False, error=str(exc)), 503
+
+
+def _flatpak_job(action, **fields):
+    if not logged_in():
+        return jsonify(ok=False, error=t('Bitte anmelden.')), 401
+    app_id = request.form.get('app_id', '')
+    if not flatpak_store.valid_app_id(app_id):
+        return jsonify(ok=False, error=t('Ungültige Flatpak-App-ID.')), 400
+    try:
+        return jsonify(install_request(action, app_id=app_id, **fields))
+    except InstallError as exc:
+        return jsonify(ok=False, error=str(exc)), 400
+
+
+@app.post('/flatpaks/install')
+def flatpak_install_action():
+    return _flatpak_job('flatpak_install')
+
+
+@app.post('/flatpaks/remove')
+def flatpak_remove_action():
+    return _flatpak_job('flatpak_remove', delete_data=request.form.get('delete_data') == '1')
 
 
 @app.route('/emulators', methods=['GET', 'POST'])

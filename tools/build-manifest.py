@@ -9,10 +9,10 @@ groups = {
     'desktop': ['menu', 'menu_tiles', 'menu_camera', 'menu_support', 'speech', 'video', 'parent_ui', 'parent_ui_system', 'status_overlay', 'close_overlay', 'browser', 'lockscreen', 'timer', 'media', 'screen_guard', 'foreground', 'idle', 'power'],
     'controller': ['controller', 'controller_profiles', 'input_devices'],
     'network': ['wifi', 'bluetooth', 'wifi_ui', 'bluetooth_ui', 'network_status'],
-    'emulators': ['backups', 'emulators', 'emulator_video', 'emulator_session', 'savestates', 'emulator_install', 'emulator_catalog', 'emulator_service'],
-    'backend': ['parent', 'parent_web'],
+    'emulators': ['backups', 'emulators', 'emulator_video', 'emulator_session', 'savestates', 'emulator_install', 'emulator_catalog', 'emulator_service', 'flatpak_service'],
+    'backend': ['parent', 'parent_web', 'flatpak_store'],
     'updates': ['updates', 'release_source', 'update_service'],
-    'cli': ['cli_osd_notify', 'cli_update_apps', 'cli_flatpak', 'cli_emulator', 'cli_emulator_check'],
+    'cli': ['cli_osd_notify', 'cli_update_apps', 'cli_flatpak', 'cli_flatpak_menu', 'cli_emulator', 'cli_emulator_check'],
     'tools': [], 'services': [],
 }
 components = {key: {'files': ['src/paimenos/' + name + '.py' for name in names]} for key, names in groups.items()}
