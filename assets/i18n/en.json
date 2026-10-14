@@ -1419,5 +1419,22 @@
   "Auf welche Festplatte soll PaimenOS?\\nDie ganze Platte wird benutzt, eine Aufteilung ist nicht nötig.": "Which disk should PaimenOS be installed on?\\nThe whole disk is used, no partitioning is needed.",
   "Festplatte": "Disk",
   "  ! Flathub ist nicht erreichbar.": "  ! Flathub is unavailable.",
-  "1) Erneut versuchen  2) Debian-Pakete verwenden [1]: ": "1) Try again  2) Use Debian packages [1]: "
+  "1) Erneut versuchen  2) Debian-Pakete verwenden [1]: ": "1) Try again  2) Use Debian packages [1]: ",
+  "Eine Nachinstallation läuft bereits.": "A completion is already running.",
+  "Es ist nichts nachzuholen.": "There is nothing left to complete.",
+  "Nachinstallation wird gestartet …": "Starting completion …",
+  "Mauszeiger (Bibata)": "Mouse pointer (Bibata)",
+  "Sprachausgabe": "Speech output",
+  "Logos der Webseiten": "Website logos",
+  "{title} wird geladen …": "Loading {title} …",
+  "{title}: {result}": "{title}: {result}",
+  "fertig": "done",
+  "fehlgeschlagen": "failed",
+  "Alles nachgeholt. Der Mauszeiger gilt nach dem nächsten Neustart.": "Everything is complete. The mouse pointer applies after the next restart.",
+  "Nicht alles ließ sich nachholen. Internet prüfen und erneut versuchen.": "Not everything could be completed. Check the internet connection and try again.",
+  "Nachinstallation gestartet. Der Fortschritt steht oben auf der Startseite.": "Completion started. Progress is shown at the top of the start page.",
+  "Offline installiert: noch nicht alles eingerichtet": "Installed offline: setup not complete yet",
+  "Dieses Gerät wurde ohne Internet eingerichtet. Es fehlen noch der Mauszeiger (Bibata), die Sprachausgabe und die Logos der Webseiten. Emulatoren und Flathub-Apps lassen sich auf den Seiten „Emulatoren“ und „Flatpak-Apps“ nachholen.": "This device was set up without internet. The mouse pointer (Bibata), speech output and website logos are still missing. Emulators and Flathub apps can be added on the “Emulators” and “Flatpak apps” pages.",
+  "Jetzt vervollständigen": "Complete now",
+  "Kein Internet erreichbar. Bitte zuerst das Netzwerk verbinden.": "No internet connection. Please connect to a network first."
 }

@@ -5,6 +5,8 @@ set -Eeuo pipefail
 SOURCE=/opt/paimenos-source
 PENDING=/var/lib/paimenos/setup-pending
 SUCCESS=/etc/paimenos-laptop.installed
+# Merker für den Elternbereich: Offline installiert, Mauszeiger/Sprachausgabe/Logos fehlen noch.
+OFFLINE_MARKER=/var/lib/paimenos/offline-install-pending
 [[ -f $PENDING ]] || exit 0
 REPO_DIR="$SOURCE"
 source "$SOURCE/installer/language.sh"
@@ -99,10 +101,14 @@ if [[ ! -f $SUCCESS ]]; then
         # App, emulator and PIN prompts are handled by install.sh unchanged.
         offline_env=()
         if (( OFFLINE )); then
+            install -D -m 0644 /dev/null "$OFFLINE_MARKER"
             offline_env=(PAIMENOS_OFFLINE=1 PAIMENOS_APP_SOURCE=debian PAIMENOS_EMULATORS=none)
         fi
         if env APT_CONFIG="$APT_SESSION_CONFIG" PAIMENOS_REBOOT=0 "${offline_env[@]}" bash "$SOURCE/install.sh" "${args[@]}"; then
-            [[ -f $SUCCESS ]] && break
+            if [[ -f $SUCCESS ]]; then
+                (( OFFLINE )) || rm -f "$OFFLINE_MARKER"
+                break
+            fi
         fi
         printf "$(paimenos_text '\nSetup noch nicht abgeschlossen. Netzwerk prüfen und erneut starten.\n')"
         printf "$(paimenos_text 'Vorhandene Einstellungen werden beim Fortsetzen beibehalten.\n')"
