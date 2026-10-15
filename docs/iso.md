@@ -75,9 +75,17 @@ Die Liste steht in `installer/offline-packages.txt`; ein Test hält sie mit
   wird trotzdem geschrieben und aktiviert.
 - **Im Offline-Modus entfallen:** Emulatoren, Flathub-Apps, die übrigen Apps,
   Sprachausgabe (Piper) und die heruntergeladenen Webseiten-Logos. Alles lässt sich
-  später mit Internet nachinstallieren (Eltern-Bereich bzw.
-  `install-paimenos-speech.py`). Das fertige System hat danach normale Debian-
+  später mit Internet nachinstallieren. Das fertige System hat danach normale Debian-
   Online-Quellen für Updates.
+- **Nachholen nach dem Offline-Setup:** Das Setup legt den Merker
+  `/var/lib/paimenos/offline-install-pending` an. Solange er existiert, zeigt die Startseite
+  des Elternbereichs den Hinweis „Offline installiert: noch nicht alles eingerichtet“. Sobald
+  Internet erreichbar ist, holt der Knopf **Jetzt vervollständigen** den Mauszeiger (Bibata), die
+  Sprachausgabe und die Webseiten-Logos nach (Root-Dienst, `offline_complete.py`). Gelingen
+  Mauszeiger und Sprachausgabe, verschwindet der Merker; sonst bleibt der Hinweis und der Knopf lässt
+  sich wiederholen. Die Logos kommen von fremden Webseiten und zählen dafür, wie im Installer, nicht. Es
+  passiert nichts automatisch auf dem Kindergerät. Emulatoren und Flathub-Apps wählen die Eltern
+  weiterhin selbst auf den Seiten „Emulatoren“ und „Flatpak-Apps“.
 - **Signatur:** Der Build signiert das Repo. Mit dem GitHub-Secret
   `PAIMENOS_REPO_SIGNING_KEY` (privater Schlüssel, ASCII-armored) signiert er mit
   dem Projektschlüssel, ohne Secret mit einem Einmalschlüssel dieses Builds. Der

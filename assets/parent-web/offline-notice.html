@@ -1,0 +1,6 @@
+{% if offline %}<section class="panel" id="offline-notice"><h2>{{ t('Offline installiert: noch nicht alles eingerichtet') }}</h2>
+<p class="hint">{{ t('Dieses Gerät wurde ohne Internet eingerichtet. Es fehlen noch der Mauszeiger (Bibata), die Sprachausgabe und die Logos der Webseiten. Emulatoren und Flathub-Apps lassen sich auf den Seiten „Emulatoren“ und „Flatpak-Apps“ nachholen.') }}</p>
+{% if offline.job.state == 'running' %}<p role="status">{{ offline.job.message }}</p><progress max="100" value="{{ offline.job.percent }}" style="width:100%;height:18px"></progress><script>setTimeout(() => location.reload(), 5000);</script>
+{% else %}{% if offline.job.state == 'error' and offline.job.message %}<p role="alert">{{ offline.job.message }}</p>{% endif %}
+{% if offline.online %}<form method="post" action="{{ url_for('offline_complete_start') }}"><button class="btn" type="submit">{{ t('Jetzt vervollständigen') }}</button></form>
+{% else %}<p role="status">{{ t('Kein Internet erreichbar. Bitte zuerst das Netzwerk verbinden.') }}</p>{% endif %}{% endif %}</section>{% endif %}

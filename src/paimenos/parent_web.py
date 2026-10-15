@@ -29,6 +29,8 @@ from paimenos.diagnostics import collect_diagnostics, diagnostics_text
 from paimenos.bluetooth import bluetooth_request, BluetoothError
 from paimenos.wifi import wifi_request, WifiError
 from paimenos.updates import update_request, UpdateError
+import paimenos.offline_complete as offline_complete
+from paimenos.network_status import NetworkStatus
 
 CONFIG_DIR = str(CONFIG_ROOT)
 ICONS_DIR = parents.ICONS_DIR
@@ -220,13 +222,31 @@ def updates_action():
         return jsonify(ok=False, error=str(exc)), 409
 
 
+# Im Hintergrund geprüft, damit die Startseite ohne Internet nicht auf Socket-Zeitlimits wartet.
+OFFLINE_NETWORK = NetworkStatus()
+if offline_complete.pending():
+    OFFLINE_NETWORK.value()  # Erste Prüfung schon beim Start, damit die erste Startseite ein Ergebnis hat.
+
+
+def offline_notice():
+    """Hinweis nach einer Offline-Installation: nur sichtbar, solange etwas nachzuholen ist."""
+    if not offline_complete.pending():
+        return None
+    try:
+        job = install_request('complete_status')['complete_job']
+    except (InstallError, KeyError):
+        job = {'state': 'idle', 'message': ''}
+    online = job.get('state') != 'running' and OFFLINE_NETWORK.value()
+    return {'job': job, 'online': online}
+
+
 @app.route('/')
 @login_required
 def dashboard():
     st, items = read_settings(), parents.managed_apps()
     info = parents.usage(st)
     active = sum(parents.app_active(a, st) for a in items)
-    body = render_template_string(_template('dashboard-head.html') + STATS + _template('dashboard-summary.html') + BONUS_BUTTONS + _template('dashboard-footer.html'), info=info, active=active, count=len(items), third_label=t('Apps freigegeben'), third_value=f'{active} / {len(items)}', return_to='dashboard')
+    body = render_template_string(_template('offline-notice.html') + _template('dashboard-head.html') + STATS + _template('dashboard-summary.html') + BONUS_BUTTONS + _template('dashboard-footer.html'), info=info, active=active, count=len(items), third_label=t('Apps freigegeben'), third_value=f'{active} / {len(items)}', return_to='dashboard', offline=offline_notice())
     return render(body)
 
 
@@ -322,6 +342,28 @@ def flatpak_install_action():
 @app.post('/flatpaks/remove')
 def flatpak_remove_action():
     return _flatpak_job('flatpak_remove', delete_data=request.form.get('delete_data') == '1')
+
+
+@app.get('/offline-complete/status')
+def offline_complete_status():
+    if not logged_in():
+        return jsonify(ok=False, error=t('Bitte anmelden.')), 401
+    try:
+        return jsonify(install_request('complete_status'))
+    except InstallError as exc:
+        return jsonify(ok=False, error=str(exc)), 503
+
+
+@app.post('/offline-complete/start')
+def offline_complete_start():
+    if not logged_in():
+        return jsonify(ok=False, error=t('Bitte anmelden.')), 401
+    try:
+        install_request('complete_start')
+        flash(t('Nachinstallation gestartet. Der Fortschritt steht oben auf der Startseite.'), 'success')
+    except InstallError as exc:
+        flash(str(exc), 'error')
+    return redirect(url_for('dashboard'))
 
 
 @app.route('/emulators', methods=['GET', 'POST'])
