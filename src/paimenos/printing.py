@@ -18,6 +18,8 @@ import urllib.parse
 
 SOCKET_PATH = '/run/paimenos-print/api.sock'
 SETTINGS_PATH = Path('/var/lib/paimenos/printing/settings.json')
+# Anzahl offener Aufträge für das Kinder-Menü; liegt nur im Speicher und verschwindet mit dem Dienst.
+QUEUE_PATH = Path('/run/paimenos-print/queue.json')
 SPOOL_DIR = Path('/var/spool/cups')
 KIDS_USER = 'kids'
 # off: Kinder können nicht drucken; approval: Aufträge warten auf die Eltern; direct: ohne Freigabe.
@@ -70,6 +72,32 @@ def write_config(config, path=SETTINGS_PATH):
     # Firefox-Profile des Kindes lesen den Modus; Schreiben darf nur der Dienst.
     os.chmod(temporary, 0o644)
     os.replace(temporary, path)
+
+
+def write_queue(jobs, path=QUEUE_PATH):
+    state = dict(open=len(jobs), held=sum(job['state'] == 4 for job in jobs.values()))
+    path = Path(path)
+    try:
+        if json.loads(path.read_text(encoding='utf-8')) == state:
+            return
+    except (OSError, ValueError):
+        pass
+    temporary = path.with_name('.' + path.name + '.tmp')
+    temporary.write_text(json.dumps(state), encoding='utf-8')
+    os.chmod(temporary, 0o644)
+    os.replace(temporary, path)
+
+
+def queue_status(path=QUEUE_PATH):
+    """(offene Aufträge, davon wartend auf Freigabe) oder None ohne laufenden Druckdienst. Blockiert nie."""
+    try:
+        state = json.loads(Path(path).read_text(encoding='utf-8'))
+        values = state['open'], state['held']
+    except (OSError, ValueError, TypeError, KeyError):
+        return None
+    if not all(type(value) is int and value >= 0 for value in values):
+        return None
+    return values
 
 
 def print_request(action='status', **values):
@@ -157,8 +185,8 @@ class PrintController:
     selbst an, bevor sie gedruckt werden. `enforce()` läuft zusätzlich alle zwei Sekunden und erfasst auch
     Warteschlangen, die CUPS selbst angelegt hat (automatisch gefundene Netzwerkdrucker).
     """
-    def __init__(self, driver, settings_path=SETTINGS_PATH):
-        self.driver, self.settings_path = driver, settings_path
+    def __init__(self, driver, settings_path=SETTINGS_PATH, queue_path=None):
+        self.driver, self.settings_path, self.queue_path = driver, settings_path, queue_path
         self.lock = threading.RLock()
         self.config = read_config(settings_path)
         self.discovery = dict(running=False, devices=[], error='')
@@ -185,6 +213,8 @@ class PrintController:
                     # Auftrag des Kindes, der an der Vorgabe vorbei sofort drucken würde.
                     if job['state'] == 3 and job['user'] == KIDS_USER and number not in released:
                         self.driver.hold(number)
+            if self.queue_path:
+                write_queue(self.driver.jobs(), self.queue_path)
             if released != self.config['released']:
                 self.config['released'] = released
                 self.save()
@@ -498,7 +528,7 @@ def disable_cups_web_interface():
 
 def run_daemon():
     disable_cups_web_interface()
-    controller = PrintController(CupsDriver())
+    controller = PrintController(CupsDriver(), queue_path=QUEUE_PATH)
 
     def enforce_loop():
         while True:

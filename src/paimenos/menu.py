@@ -23,6 +23,7 @@ from paimenos.speech import TitleSpeaker, spoken_source
 from paimenos import hardware_profile
 from PyQt5 import sip
 from paimenos.menu_support import find_program, get_battery_status
+from paimenos.printing import queue_status
 from paimenos.menu_tiles import ARROW_KEYS, COLOR_PALETTE, ArrowButton, PaimenOSTile
 from paimenos.menu_camera import CameraBrowser, has_media_attached
 from PyQt5.QtCore import QLocale, Qt, QTimer, QTime, QDate, QSize, QPointF
@@ -213,6 +214,15 @@ class PaimenOSMenu(QWidget):
         self.battery_label.setObjectName('chip')
         top_layout.addSpacing(18)
         top_layout.addWidget(self.battery_label, 0, Qt.AlignVCenter)
+
+        # Offene Druckaufträge; nur sichtbar, solange etwas in der Warteschlange ist.
+        self.print_label = QLabel()
+        self.print_label.setFont(QFont("DejaVu Sans", 18, QFont.Bold))
+        self.print_label.setAlignment(Qt.AlignCenter)
+        self.print_label.setObjectName('chip')
+        self.print_label.hide()
+        top_layout.addSpacing(10)
+        top_layout.addWidget(self.print_label, 0, Qt.AlignVCenter)
 
         top_layout.addStretch()
 
@@ -823,6 +833,17 @@ class PaimenOSMenu(QWidget):
         if getattr(self, "active_process", None) is None:
             self.restore_child_view()
 
+    def update_print_queue(self):
+        queue = queue_status()
+        if not queue or not queue[0]:
+            self.print_label.hide()
+            return
+        count, held = queue
+        self.print_label.setText(f"🖨️ {count}")
+        self.print_label.setToolTip(t('Druckaufträge: {value0}', value0=count)
+                                    + (t(' · {value0} warten auf die Eltern', value0=held) if held else ''))
+        self.print_label.show()
+
     def update_clock_and_net(self):
         self.time_label.setText(QTime.currentTime().toString("HH:mm"))
         self.date_label.setText(QLocale().toString(QDate.currentDate(), "dddd, d MMMM yyyy" if language() == "en" else "dddd, d. MMMM yyyy"))
@@ -848,6 +869,8 @@ class PaimenOSMenu(QWidget):
             self.battery_label.setToolTip(
                 t('Akku: {value0}%', value0=capacity) + (t(' – wird geladen') if charging else "")
             )
+
+        self.update_print_queue()
 
         request_file = os.path.join(str(STATE_DIR), "paimenos-menu.raise")
         if os.path.exists(request_file):

@@ -144,6 +144,24 @@ class ControllerTests(unittest.TestCase):
         self.assertEqual(state['format'], 'application/pdf')
 
 
+class QueueTests(unittest.TestCase):
+    def test_menu_reads_open_jobs_without_asking_the_service(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'queue.json'
+            self.assertIsNone(printing.queue_status(path))
+            driver = FakeDriver()
+            controller = printing.PrintController(driver, Path(folder) / 'settings.json', path)
+            driver.job(3, state=4); driver.job(4, state=5)
+            controller.enforce()
+            self.assertEqual(printing.queue_status(path), (2, 1))
+            self.assertEqual(path.stat().st_mode & 0o777, 0o644)
+            driver.active.clear()
+            controller.enforce()
+            self.assertEqual(printing.queue_status(path), (0, 0))
+            path.write_text('{"open": -1, "held": 0}')
+            self.assertIsNone(printing.queue_status(path))
+
+
 class InputTests(unittest.TestCase):
     def test_only_printer_addresses_are_accepted(self):
         self.assertEqual(printing.validate_uri('drucker.local'), 'ipp://drucker.local/ipp/print')

@@ -82,6 +82,19 @@ class MenuNavigationTests(unittest.TestCase):
         self.press(window, Qt.Key_Up)
         self.assertEqual(self.focused_index(window), 0)
 
+    def test_print_queue_chip_shows_open_jobs_next_to_battery(self):
+        from paimenos import menu
+        window = self.make_menu(4)
+        with patch.object(menu, 'queue_status', return_value=(3, 2)):
+            window.update_print_queue()
+        self.assertFalse(window.print_label.isHidden())
+        self.assertEqual(window.print_label.text(), '🖨️ 3')
+        self.assertIn('2', window.print_label.toolTip())
+        for empty in (None, (0, 0)):
+            with patch.object(menu, 'queue_status', return_value=empty):
+                window.update_print_queue()
+            self.assertTrue(window.print_label.isHidden())
+
     def test_down_stops_at_last_tile(self):
         window = self.make_menu(10, columns=4)
         window.focus_tile(9)

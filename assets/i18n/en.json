@@ -1513,5 +1513,7 @@
   "Wird gedruckt": "Printing",
   "Zeit": "Time",
   "Zuletzt gedruckt": "Recently printed",
-  "“ entfernen? Wartende Aufträge für diesen Drucker werden verworfen.": "”? Waiting jobs for this printer will be discarded."
+  "“ entfernen? Wartende Aufträge für diesen Drucker werden verworfen.": "”? Waiting jobs for this printer will be discarded.",
+  "Druckaufträge: {value0}": "Print jobs: {value0}",
+  " · {value0} warten auf die Eltern": " · {value0} waiting for a parent"
 }
