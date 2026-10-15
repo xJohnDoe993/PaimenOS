@@ -29,6 +29,7 @@ from paimenos.diagnostics import collect_diagnostics, diagnostics_text
 from paimenos.bluetooth import bluetooth_request, BluetoothError
 from paimenos.wifi import wifi_request, WifiError
 from paimenos.updates import update_request, UpdateError
+from paimenos.printing import print_request, print_document, PrintError
 
 CONFIG_DIR = str(CONFIG_ROOT)
 ICONS_DIR = parents.ICONS_DIR
@@ -117,7 +118,7 @@ def render(body, title=None, section='dashboard'):
     body = re.sub(r'(<form\b[^>]*method="post"[^>]*>)', lambda m: m.group(1) + field, body)
     # Grouped like the local parent area: child, connections, system.
     nav = [[(t('Übersicht'), 'dashboard'), (t('Bildschirmzeit'), 'time_page'), ('Apps', 'apps_page'), (t('Emulatoren'), 'emulators_page'), (t('Flatpak-Apps'), 'flatpaks_page')],
-           [(t('WLAN'), 'wifi_page'), ('Bluetooth', 'bluetooth_page'), ('Controller', 'controllers_page')],
+           [(t('WLAN'), 'wifi_page'), ('Bluetooth', 'bluetooth_page'), ('Controller', 'controllers_page'), (t('Drucken'), 'printing_page')],
            [(t('USB-Backups'), 'backups_page'), ('Updates', 'updates_page'), (t('Einstellungen'), 'settings_page'), (t('Diagnose'), 'diagnostics_page')]]
     return render_template_string(BASE, body=body, title=title, section=section,
                                   authenticated=logged_in(), navigation=nav)
@@ -125,6 +126,7 @@ def render(body, title=None, section='dashboard'):
 
 @app.errorhandler(400)
 @app.errorhandler(404)
+@app.errorhandler(503)
 def http_error(error):
     return render(render_template_string(_template('http-error.html'), code=error.code, message=error.description), t('Hinweis')), error.code
 
@@ -652,6 +654,52 @@ def wifi_advanced():
     except OSError:
         return jsonify(error=t('Der Netzwerkeditor konnte nicht angefordert werden.')), 503
     return jsonify(message=t('Der Netzwerkeditor öffnet sich am Laptop.'))
+
+
+PRINTING_PAGE = _template('printing-page.html')
+PRINT_ACTIONS = {'mode': ('mode',), 'release': ('job',), 'cancel': ('job',), 'add': ('title', 'uri'),
+                 'remove': ('printer',), 'default': ('printer',), 'test': ('printer',), 'discover': ()}
+
+
+@app.route('/printing')
+@login_required
+def printing_page():
+    return render(render_template_string(PRINTING_PAGE), t('Drucken'), 'printing_page')
+
+
+@app.route('/printing/status')
+def printing_status():
+    if not logged_in():
+        return jsonify(error=t('Bitte im Elternbereich anmelden.')), 401
+    try:
+        return jsonify(print_request())
+    except PrintError as exc:
+        return jsonify(error=str(exc)), 503 if exc.unavailable else 409
+
+
+@app.route('/printing/action', methods=['POST'])
+def printing_action():
+    if not logged_in():
+        return jsonify(error=t('Bitte im Elternbereich anmelden.')), 401
+    action = request.form.get('action', '')
+    if action not in PRINT_ACTIONS:
+        return jsonify(error=t('Unbekannte Druckaktion.')), 400
+    values = {key: request.form[key] for key in PRINT_ACTIONS[action] if key in request.form}
+    try:
+        return jsonify(print_request(action, **values))
+    except PrintError as exc:
+        return jsonify(error=str(exc)), 503 if exc.unavailable else 409
+
+
+@app.route('/printing/jobs/<int:job>/document')
+@login_required
+def printing_document(job):
+    try:
+        data, mime, name, inline = print_document(job)
+    except PrintError as exc:
+        abort(503 if exc.unavailable else 404, str(exc))
+    disposition = ('inline' if inline else 'attachment') + '; filename="' + name + '"'
+    return Response(data, mimetype=mime, headers={'Content-Disposition': disposition})
 
 
 @app.route('/diagnostics')

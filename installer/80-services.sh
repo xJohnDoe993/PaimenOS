@@ -24,12 +24,15 @@ install_repo_file systemd/system/paimenos-wifi.service /etc/systemd/system/paime
 
 install_repo_file systemd/system/paimenos-power.service /etc/systemd/system/paimenos-power.service
 
+install_repo_file systemd/system/paimenos-print.service /etc/systemd/system/paimenos-print.service
+
 systemctl daemon-reload
 systemctl enable paimenos-wifi.service
 systemctl enable paimenos-emulators.service
 systemctl enable paimenos-updates.service
 systemctl enable paimenos-bluetooth.service
 systemctl enable paimenos-power.service
+systemctl enable paimenos-print.service
 systemctl enable paimenos-parent-web.service >/dev/null 2>&1 || true
 
 # Datei wurde ersetzt: ein laufender Dienst muss den neuen Code laden.
@@ -54,6 +57,9 @@ if ! systemctl is-active --quiet paimenos-emulators.service; then
     echo "$(paimenos_text 'FEHLER: Emulator-Installationsdienst ist nicht gestartet. Siehe systemctl status paimenos-emulators.service')" >&2
     exit 1
 fi
+# Drucken ist optional: Ein fehlender Druckdienst bricht das Setup nicht ab.
+systemctl enable --now cups.service >/dev/null 2>&1 || true
+systemctl restart paimenos-print.service || echo "$(paimenos_text 'Hinweis: Druckverwaltung nicht gestartet. Siehe systemctl status paimenos-print.service')" >&2
 systemctl restart paimenos-parent-web.service paimenos-updates.service
 sleep 2
 if ! systemctl is-active --quiet paimenos-parent-web.service; then

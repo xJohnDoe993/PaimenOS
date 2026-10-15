@@ -59,7 +59,7 @@ class WebStructureTests(unittest.TestCase):
         page = self.client.get('/bluetooth').get_data(as_text=True)
         nav = page[page.index('<nav'):page.index('</nav>')]
         order = [nav.index(href) for href in ('href="/"', '/time', '/apps', '/emulators', '/wifi', '/bluetooth',
-                                               '/controllers', '/backups', '/updates', '/settings', '/diagnostics')]
+                                               '/controllers', '/printing', '/backups', '/updates', '/settings', '/diagnostics')]
         self.assertEqual(order, sorted(order))
         self.assertEqual(nav.count('class="nav-sep"'), 2)
         self.assertIn('id="bt-hide-unnamed" checked', page)

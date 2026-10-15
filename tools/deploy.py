@@ -194,7 +194,7 @@ def install_launchers(release, previous=None):
                     if target.is_symlink() and target.readlink() == expected:
                         target.unlink()
 
-OPTIONAL_SYSTEM_UNITS = ('paimenos-updates.service', 'paimenos-power.service')
+OPTIONAL_SYSTEM_UNITS = ('paimenos-updates.service', 'paimenos-power.service', 'paimenos-print.service')
 USER_UNITS = ('paimenos-menu.service', 'paimenos-timer.service', 'paimenos-media.service',
               'paimenos-osd.service', 'paimenos-cursor.service', 'paimenos-idle.service')
 
@@ -259,6 +259,25 @@ def retire_squid(run=subprocess.run):
         return
     run(['systemctl', 'disable', '--now', 'squid.service'], check=False, capture_output=True)
 
+FIREFOX_POLICIES = Path('/etc/firefox/policies/policies.json')
+
+def allow_firefox_printing(path=FIREFOX_POLICIES):
+    """Ältere Setups sperrten Drucken per Firefox-Richtlinie. Jetzt entscheidet der Elternbereich (Seite Drucken).
+
+    Best effort wie retire_squid: Nur der eine Schlüssel wird entfernt, alle anderen Richtlinien bleiben.
+    """
+    try:
+        data = json.loads(path.read_text(encoding='utf-8'))
+        if data.get('policies', {}).get('PrintingEnabled') is not False:
+            return
+        del data['policies']['PrintingEnabled']
+        temporary = path.with_name('.' + path.name + '.paimenos')
+        temporary.write_text(json.dumps(data, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+        temporary.chmod(0o644)
+        os.replace(temporary, path)
+    except (OSError, ValueError, AttributeError):
+        pass
+
 def activate(base, release, *, initial=False, units=False, live=True, package_progress=print, packages_prepared=False):
     current = base / 'current'
     old = current.resolve() if current.is_symlink() else None
@@ -270,6 +289,7 @@ def activate(base, release, *, initial=False, units=False, live=True, package_pr
             install_launchers(release, previous=old)
             if not initial:
                 retire_squid()
+                allow_firefox_printing()
                 if units:
                     apply_units(release, previous=old)
                 restart_services()

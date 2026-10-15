@@ -1,0 +1,155 @@
+<div class="pagehead"><div class="eyebrow">{{ t('Verbinden & verwalten') }}</div><h1>{{ t('Drucken') }}</h1><p class="muted">{{ t('Was das Kind druckt (z. B. aus Firefox oder Tux Paint), erscheint hier. Sie sehen das Dokument an und geben es frei oder verwerfen es.') }}</p></div>
+<style>
+#print-jobs h3,#print-printers h3,#print-found h3,#print-history td{overflow-wrap:anywhere}
+.print-modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.print-modes .check{align-items:flex-start;margin:0}.print-modes .check span{display:block}
+#print-dialog{color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:26px;width:min(480px,calc(100% - 32px));max-height:90vh;overflow:auto}
+#print-dialog::backdrop{background:#070d19bb}
+#print-history{width:100%;border-collapse:collapse}#print-history th,#print-history td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+</style>
+<section class="panel"><h2>{{ t('Druckfreigabe') }}</h2><fieldset id="print-mode" class="print-modes" style="border:0;padding:0;margin:0" aria-label="{{ t('Druckfreigabe') }}" disabled>
+<label class="check"><input type="radio" name="print-mode" value="off"><span><strong>{{ t('Aus') }}</strong><span class="muted small">{{ t('Das Kind kann nicht drucken.') }}</span></span></label>
+<label class="check"><input type="radio" name="print-mode" value="approval"><span><strong>{{ t('Mit Freigabe') }}</strong><span class="muted small">{{ t('Aufträge warten, bis Sie sie hier freigeben.') }}</span></span></label>
+<label class="check"><input type="radio" name="print-mode" value="direct"><span><strong>{{ t('Ohne Freigabe') }}</strong><span class="muted small">{{ t('Das Kind druckt sofort; Aufträge bleiben hier sichtbar.') }}</span></span></label>
+</fieldset><p id="print-status" class="hint" role="status">{{ t('Druckverwaltung wird geladen …') }}</p></section>
+<div id="print-notice" class="flash" role="status" aria-live="polite" hidden></div>
+<section><h2>{{ t('Druckaufträge') }}</h2><div id="print-jobs" class="grid"></div></section>
+<section style="margin-top:28px"><div class="row"><h2>{{ t('Drucker') }}</h2><div class="actions"><button id="print-manual" class="secondary" disabled>{{ t('Per Adresse hinzufügen') }}</button><button id="print-discover" disabled>{{ t('Drucker suchen') }}</button></div></div><div id="print-printers" class="grid"></div></section>
+<section id="print-found-section" style="margin-top:28px" hidden><h2>{{ t('Gefundene Drucker') }}</h2><div id="print-found" class="grid"></div></section>
+<section style="margin-top:28px"><h2>{{ t('Zuletzt gedruckt') }}</h2><div id="print-history-box"></div><p class="hint">{{ t('Gedruckte Dokumente lassen sich etwa einen Tag lang noch ansehen.') }}</p></section>
+<dialog id="print-dialog" aria-labelledby="print-dialog-title"><form id="print-form"><h2 id="print-dialog-title">{{ t('Drucker hinzufügen') }}</h2><label for="print-title">{{ t('Name') }}</label><input id="print-title" maxlength="80" autocomplete="off" required><div id="print-uri-fields"><label for="print-uri">{{ t('Adresse (IP-Adresse oder IPP-Adresse)') }}</label><input id="print-uri" maxlength="1024" autocomplete="off" placeholder="192.168.1.20"></div><p id="print-dialog-error" class="hint" role="alert"></p><p class="hint">{{ t('Moderne Drucker werden ohne Treiber eingerichtet (IPP Everywhere / AirPrint). Der Drucker muss dafür eingeschaltet sein.') }}</p><div class="actions"><button type="button" id="print-close" class="secondary">{{ t('Abbrechen') }}</button><button id="print-submit">{{ t('Hinzufügen') }}</button></div></form></dialog>
+<noscript><p class="flash error">{{ t('Für die Druckverwaltung bitte JavaScript im Browser aktivieren.') }}</p></noscript>
+<script>
+(() => {
+  const statusUrl = {{ url_for('printing_status')|tojson }}, actionUrl = {{ url_for('printing_action')|tojson }}, csrf = {{ csrf_token()|tojson }};
+  const documentUrl = {{ url_for('printing_document', job=0)|tojson }}, locale = {{ regional_locale()|tojson }};
+  const $ = id => document.getElementById(id);
+  let state = null, sending = false, polling = false, stopped = false, revision = 0, signature = '', target = null;
+  function el(tag, text = '', className = '') { const node = document.createElement(tag); node.textContent = text; node.className = className; return node; }
+  function notice(text, error = false) { $('print-notice').hidden = !text; $('print-notice').textContent = text; $('print-notice').className = error ? 'flash error' : 'flash'; }
+  async function fetchData(url, options = {}) {
+    const response = await fetch(url, {credentials:'same-origin',cache:'no-store',...options});
+    if (response.status === 401 || response.redirected) { stopped = true; throw new Error(PaimenTranslate('Eltern-Sitzung abgelaufen. Bitte neu anmelden.')); }
+    let data; try { data = await response.json(); } catch { throw new Error(PaimenTranslate('Druckanfrage nicht möglich. Verbindung zum Laptop prüfen.')); }
+    if (!response.ok) throw new Error(data.error || PaimenTranslate('Druckanfrage fehlgeschlagen.')); return data;
+  }
+  async function act(action, values = {}) {
+    if (sending) return false;
+    sending = true; revision++; if (state) render(state, false);
+    try {
+      state = await fetchData(actionUrl, {method:'POST',body:new URLSearchParams({csrf_token:csrf,action,...values})});
+      notice(state.error || state.message, !!state.error); return !state.error;
+    } catch (error) { notice(error.message, true); return false; }
+    finally { sending = false; if (state) render(state, false); }
+  }
+  function when(seconds) { return seconds ? new Date(seconds * 1000).toLocaleString(locale, {weekday:'short',hour:'2-digit',minute:'2-digit'}) : ''; }
+  const stateLabels = {held:'Wartet auf Freigabe', pending:'In der Warteschlange', printing:'Wird gedruckt', stopped:'Drucker angehalten', canceled:'Verworfen', aborted:'Abgebrochen', completed:'Gedruckt'};
+  function label(key) { return PaimenTranslate(stateLabels[key] || stateLabels.pending); }
+  function button(text, fn, cls = 'secondary') { const b = el('button', text, cls); b.type = 'button'; b.disabled = sending; b.addEventListener('click', fn); return b; }
+  function viewLink(job) { const a = el('a', PaimenTranslate('Ansehen'), 'btn secondary'); a.href = documentUrl.replace('/0/', '/' + job.id + '/'); a.target = '_blank'; a.rel = 'noopener'; return a; }
+  function details(job) {
+    const parts = [job.printer_title, when(job.created)];
+    if (job.pages) parts.push(job.pages + PaimenTranslate(' Seiten'));
+    if (job.size_kb) parts.push(job.size_kb + ' KB');
+    return parts.filter(Boolean).join(' · ');
+  }
+  function jobCard(job) {
+    const box = el('article', '', 'card'), row = el('div', '', 'row');
+    row.append(el('span', label(job.state), 'badge ' + (job.state === 'held' ? 'off' : 'on')));
+    box.append(row, el('h3', job.title || PaimenTranslate('Ohne Titel')), el('p', details(job), 'muted small'));
+    if (job.reason && job.state !== 'held') box.append(el('p', job.reason, 'hint'));
+    const actions = el('div', '', 'actions');
+    if (job.document) actions.append(viewLink(job));
+    if (job.state === 'held') actions.append(button(PaimenTranslate('Freigeben'), () => act('release', {job: job.id}), ''));
+    actions.append(button(PaimenTranslate('Verwerfen'), () => { if (confirm(PaimenTranslate('Druckauftrag verwerfen?'))) act('cancel', {job: job.id}); }, 'danger'));
+    box.append(actions); return box;
+  }
+  function printerCard(printer) {
+    const box = el('article', '', 'card'), row = el('div', '', 'row');
+    const status = printer.state === 5 ? PaimenTranslate('Angehalten') : printer.state === 4 ? PaimenTranslate('Druckt') : PaimenTranslate('Bereit');
+    row.append(el('span', status, 'badge ' + (printer.state === 5 ? 'off' : 'on')));
+    if (printer.default) row.append(el('span', PaimenTranslate('Standard'), 'badge on'));
+    box.append(row, el('h3', printer.title), el('p', [printer.model, printer.uri].filter(Boolean).join(' · '), 'muted small'));
+    if (printer.status) box.append(el('p', printer.status, 'hint'));
+    const actions = el('div', '', 'actions');
+    if (!printer.default) actions.append(button(PaimenTranslate('Als Standard'), () => act('default', {printer: printer.name})));
+    const test = button(PaimenTranslate('Testseite'), () => act('test', {printer: printer.name})); test.disabled ||= state.mode === 'off'; actions.append(test);
+    actions.append(button(PaimenTranslate('Entfernen'), () => { if (confirm('„' + printer.title + PaimenTranslate('“ entfernen? Wartende Aufträge für diesen Drucker werden verworfen.'))) act('remove', {printer: printer.name}); }, 'danger'));
+    box.append(actions); return box;
+  }
+  function foundCard(device) {
+    const box = el('article', '', 'card'), row = el('div', '', 'row');
+    row.append(el('span', device.connection === 'usb' ? 'USB' : PaimenTranslate('Netzwerk'), 'badge on'));
+    box.append(row, el('h3', device.info), el('p', [device.model, device.display].filter(Boolean).join(' · '), 'muted small'));
+    const add = button(device.added ? PaimenTranslate('Bereits eingerichtet') : PaimenTranslate('Hinzufügen'), () => openDialog(device), '');
+    add.disabled ||= device.added || state.adding; const actions = el('div', '', 'actions'); actions.append(add); box.append(actions); return box;
+  }
+  function history(jobs) {
+    const box = $('print-history-box'); box.replaceChildren();
+    if (!jobs.length) { box.append(el('p', PaimenTranslate('Noch nichts gedruckt.'), 'empty')); return; }
+    const table = el('table'); table.id = 'print-history'; const head = el('tr');
+    [PaimenTranslate('Dokument'), PaimenTranslate('Drucker'), PaimenTranslate('Zeit'), PaimenTranslate('Status'), ''].forEach(text => head.append(el('th', text)));
+    table.append(head);
+    jobs.forEach(job => {
+      const tr = el('tr'), view = el('td');
+      if (job.document) view.append(viewLink(job));
+      tr.append(el('td', job.title || PaimenTranslate('Ohne Titel')), el('td', job.printer_title), el('td', when(job.completed || job.created)), el('td', label(job.state)), view);
+      table.append(tr);
+    });
+    box.append(table);
+  }
+  function openDialog(device = null) {
+    target = device; $('print-dialog-title').textContent = device ? device.info : PaimenTranslate('Drucker hinzufügen');
+    $('print-title').value = device ? device.info.slice(0, 80) : ''; $('print-uri').value = ''; $('print-uri-fields').hidden = !!device;
+    $('print-dialog-error').textContent = ''; $('print-dialog').showModal(); $('print-title').focus();
+  }
+  function render(data, updateNotice = true) {
+    state = data;
+    const ready = data.available && !sending;
+    $('print-mode').disabled = !ready;
+    document.querySelectorAll('input[name="print-mode"]').forEach(input => { input.checked = input.value === data.mode; });
+    $('print-discover').disabled = !ready || data.discovery.running; $('print-manual').disabled = !ready || data.adding;
+    $('print-discover').textContent = data.discovery.running ? PaimenTranslate('Suche läuft …') : PaimenTranslate('Drucker suchen');
+    $('print-submit').disabled = sending || data.adding;
+    const held = data.jobs.filter(job => job.state === 'held').length;
+    $('print-status').textContent = !data.available ? PaimenTranslate('Der Druckdienst (CUPS) ist nicht verfügbar.')
+      : !data.printers.length ? PaimenTranslate('Noch kein Drucker eingerichtet. Unten „Drucker suchen“ wählen.')
+      : data.adding ? PaimenTranslate('Drucker wird eingerichtet …')
+      : held === 1 ? PaimenTranslate('Ein Auftrag wartet auf Freigabe.') : held ? held + PaimenTranslate(' Aufträge warten auf Freigabe.')
+      : data.mode === 'off' ? PaimenTranslate('Drucken ist für das Kind ausgeschaltet.') : PaimenTranslate('Keine Aufträge warten auf Freigabe.');
+    const key = JSON.stringify([data.mode, data.jobs, data.printers, data.discovery, data.history, data.adding, sending]);
+    if (key !== signature) {
+      signature = key;
+      $('print-jobs').replaceChildren(...data.jobs.map(jobCard));
+      if (!data.jobs.length) $('print-jobs').append(el('p', PaimenTranslate('Keine offenen Druckaufträge.'), 'empty'));
+      $('print-printers').replaceChildren(...data.printers.map(printerCard));
+      if (!data.printers.length) $('print-printers').append(el('p', PaimenTranslate('Noch kein Drucker eingerichtet.'), 'empty'));
+      const found = data.discovery.devices, searching = data.discovery.running;
+      $('print-found-section').hidden = !found.length && !searching && !data.discovery.error;
+      $('print-found').replaceChildren(...found.map(foundCard));
+      if (!found.length) $('print-found').append(el('p', searching ? PaimenTranslate('Drucker werden gesucht …') : data.discovery.error, 'empty'));
+      history(data.history);
+    }
+    if (updateNotice && (data.error || data.message)) notice(data.error || data.message, !!data.error);
+  }
+  async function poll() {
+    if (polling || sending || stopped || document.hidden) return;
+    polling = true; const started = revision;
+    try { const data = await fetchData(statusUrl); if (started === revision && !sending) render(data); }
+    catch (error) { if (started === revision && !sending) notice(error.message, true); }
+    finally { polling = false; }
+  }
+  document.querySelectorAll('input[name="print-mode"]').forEach(input => input.addEventListener('change', () => act('mode', {mode: input.value})));
+  $('print-discover').addEventListener('click', () => act('discover'));
+  $('print-manual').addEventListener('click', () => openDialog());
+  $('print-close').addEventListener('click', () => $('print-dialog').close());
+  $('print-form').addEventListener('submit', async event => {
+    event.preventDefault();
+    const title = $('print-title').value.trim(), uri = target ? target.uri : $('print-uri').value.trim();
+    if (!title || !uri) { $('print-dialog-error').textContent = PaimenTranslate('Bitte Name und Adresse angeben.'); return; }
+    $('print-dialog-error').textContent = PaimenTranslate('Drucker wird eingerichtet …');
+    if (await act('add', {title, uri})) $('print-dialog').close(); else $('print-dialog-error').textContent = $('print-notice').textContent;
+  });
+  poll(); setInterval(poll, 3000);
+  document.addEventListener('visibilitychange', poll);
+})();
+</script>

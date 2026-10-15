@@ -70,6 +70,7 @@ declare -A PAIMENOS_ENGLISH=(
     ['Hinweis: App-Einstellungen für das Hardware-Profil konnten nicht vollständig gesetzt werden.']='Note: app settings for the hardware profile could not be fully applied.'
     ['Hinweis: Bluetooth ggf. am Hardware-Schalter freigeben.']='Note: Enable Bluetooth using the hardware switch if needed.'
     ['Hinweis: Die Sprachausgabe konnte nicht eingerichtet werden. Nachholen: sudo python3 /usr/local/lib/paimenos/current/tools/install-paimenos-speech.py']='Note: Speech output could not be set up. Retry with: sudo python3 /usr/local/lib/paimenos/current/tools/install-paimenos-speech.py'
+    ['Hinweis: Druckverwaltung nicht gestartet. Siehe systemctl status paimenos-print.service']='Note: Print management did not start. See systemctl status paimenos-print.service'
     ['Hinweis: Nicht alle gewählten Emulatoren konnten eingerichtet werden. Im Elternbackend unter Emulatoren erneut installieren.']='Note: Not all selected emulators could be configured. Install them again under Emulators in the parent backend.'
     ['Hinweis: eigene ZRAM-Konfiguration wird beibehalten.']='Note: Custom ZRAM configuration is kept.'
     ['Hinweis: optionale Firmware konnte nicht vollständig installiert werden.']='Note: Could not install all optional firmware.'

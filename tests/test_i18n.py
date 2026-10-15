@@ -209,7 +209,7 @@ class BackendLanguageTests(unittest.TestCase):
                     self.assertIn('Parent area' if language == 'en' else 'Elternbereich', ''.join(parser.text))
                     with client.session_transaction() as session:
                         session.update(parent_authenticated=True, pin_fingerprint=self.web.pin_fingerprint(), csrf_token='test-token')
-                    for route in ('/','/apps','/apps/new','/apps/camera/edit','/apps/test/delete','/time','/settings','/wifi','/bluetooth','/controllers','/updates','/emulators','/diagnostics','/emulators/diagnostics'):
+                    for route in ('/','/apps','/apps/new','/apps/camera/edit','/apps/test/delete','/time','/settings','/wifi','/bluetooth','/controllers','/printing','/updates','/emulators','/diagnostics','/emulators/diagnostics'):
                         with self.subTest(language=language,route=route):
                             response = client.get(route)
                             self.assertEqual(response.status_code, 200)
