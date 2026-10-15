@@ -18,6 +18,6 @@ PAIMENOS_ENABLE_AUTO_UPDATES, PAIMENOS_ENABLE_APP_UPDATES jeweils 0|1.
 Automatischer Neustart: PAIMENOS_REBOOT=1 (Standard: 0).
 Die neue Eltern-PIN wird verdeckt abgefragt.
 
-Details: README.md und docs/installation.md
+Details: README.de.md und docs/installation.md
 
 LaurinOS-Installationen werden nicht migriert. Vor Neuinstallation eigene Daten sichern.

@@ -20,6 +20,6 @@ The new parent PIN is entered without displaying the digits.
 
 Language: detected from Debian's configured message locale. en_* selects English;
 other locales use German. PAIMENOS_LANGUAGE=en|de overrides PaimenOS's UI language.
-Details: README.en.md and docs/localization.md.
+Details: README.md and docs/localization.md.
 
 LaurinOS installations are not migrated. Back up your data before reinstalling.
