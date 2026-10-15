@@ -20,7 +20,7 @@
 
 PaimenOS macht aus einem Laptop einen Kinder-Computer, der sich wie ein eigenes Gerät anfühlt und nicht wie ein Desktop mit Kindersicherung. Nach dem Einschalten erscheint direkt das Kachelmenü; es gibt keinen Desktop, keine Dateiverwaltung und keine Systemeinstellungen, an die das Kind kommt. Was erlaubt ist, wie lange gespielt werden darf und was gedruckt wird, entscheiden die Eltern im Eltern-Bereich, am Gerät oder vom Handy aus.
 
-*Paimen* ist Finnisch für Schäfer. Aktuelle Version: siehe [`VERSION`](VERSION) und die [Release-Notizen](docs/releases/).
+*Paimen* ist Finnisch für Schäfer. Aktuelle Version: siehe [`VERSION`](VERSION) und die [Release-Notizen](docs/releases/). Entwickelt mit Hilfe von Claude AI, siehe [Entwickelt mit KI](#entwickelt-mit-ki-claude).
 
 ## Inhalt
 
@@ -28,6 +28,7 @@ PaimenOS macht aus einem Laptop einen Kinder-Computer, der sich wie ein eigenes 
 - [Installation](#installation)
 - [Updates und Rollback](#updates-und-rollback)
 - [Fehlersuche](#fehlersuche)
+- [Entwickelt mit KI (Claude)](#entwickelt-mit-ki-claude)
 - [Entwickeln](#entwickeln)
 - [Projektaufbau](#projektaufbau)
 - [Weitere Dokumentation](#weitere-dokumentation)
@@ -399,6 +400,10 @@ Wichtige Pfade auf dem Gerät:
 | `/opt/paimenos-source/` | Setup-Quelle nach ISO-Installation |
 
 ---
+
+## Entwickelt mit KI (Claude)
+
+PaimenOS begann als eine einzelne Shell-Datei, die einen Kinder-Laptop einrichtete. Etwa ab Release 0.30.0 wurde es mit Hilfe des KI-Assistenten [Claude](https://claude.ai) von Anthropic weiterentwickelt und ist so zum heutigen Projekt herangewachsen: ein Python-Paket, ein modularer Installer, ein eigenes ISO, ein Eltern-Webbereich, ein Update-System und eine automatische Testsuite. Code, Dokumentation und die Screenshots in dieser README sind zu großen Teilen mit Claude entstanden; Entscheidungen, Tests auf echten Geräten und Releases liegen beim Maintainer.
 
 ## Entwickeln
 

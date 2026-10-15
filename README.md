@@ -20,7 +20,7 @@
 
 PaimenOS turns a laptop into a children's computer that feels like a device of its own, not like a desktop with parental controls bolted on. After power-on the tile menu appears straight away; there is no desktop, no file manager and no system settings for the child to reach. Parents decide what is allowed, how long the child may play and what gets printed, in the parent area on the laptop or from their phone.
 
-*Paimen* is Finnish for shepherd. Current version: see [`VERSION`](VERSION) and the [release notes](docs/releases/).
+*Paimen* is Finnish for shepherd. Current version: see [`VERSION`](VERSION) and the [release notes](docs/releases/). Developed with the help of Claude AI, see [Built with AI](#built-with-ai-claude).
 
 ## Contents
 
@@ -28,6 +28,7 @@ PaimenOS turns a laptop into a children's computer that feels like a device of i
 - [Installation](#installation)
 - [Updates and rollback](#updates-and-rollback)
 - [Troubleshooting](#troubleshooting)
+- [Built with AI (Claude)](#built-with-ai-claude)
 - [Development](#development)
 - [Repository layout](#repository-layout)
 - [Further documentation](#further-documentation)
@@ -399,6 +400,10 @@ Important paths on the device:
 | `/opt/paimenos-source/` | setup source after an ISO installation |
 
 ---
+
+## Built with AI (Claude)
+
+PaimenOS started as a single shell script that set up a children's laptop. From roughly release 0.30.0 onwards it was developed with the help of the AI assistant [Claude](https://claude.ai) by Anthropic, and grew into the project it is today: a Python package, a modular installer, its own ISO, a parent web area, an update system and an automated test suite. Code, documentation and the screenshots in this README were largely written or produced with Claude; design decisions, testing on real devices and releases are done by the maintainer.
 
 ## Development
 
