@@ -9,7 +9,7 @@ groups = {
     'desktop': ['menu', 'menu_tiles', 'menu_camera', 'menu_support', 'speech', 'video', 'status_overlay', 'close_overlay', 'browser', 'lockscreen', 'timer', 'media', 'screen_guard', 'foreground', 'idle', 'power'],
     'controller': ['controller', 'controller_profiles', 'input_devices'],
     'network': ['wifi', 'bluetooth', 'network_status'],
-    'emulators': ['backups', 'emulators', 'emulator_video', 'emulator_session', 'savestates', 'emulator_install', 'emulator_catalog', 'emulator_service', 'flatpak_service'],
+    'emulators': ['backups', 'emulators', 'emulator_video', 'emulator_session', 'savestates', 'emulator_install', 'emulator_catalog', 'emulator_service', 'flatpak_service', 'offline_complete'],
     'backend': ['parent', 'parent_web', 'flatpak_store'],
     'updates': ['updates', 'release_source', 'update_service'],
     'cli': ['cli_osd_notify', 'cli_update_apps', 'cli_flatpak', 'cli_flatpak_menu', 'cli_emulator', 'cli_emulator_check'],
