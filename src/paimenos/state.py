@@ -5,7 +5,8 @@ import fcntl
 import json
 import os
 import tempfile
-from datetime import date
+import re
+from datetime import date, datetime
 
 SETTINGS_FILE = str(CONFIG_DIR / "settings.json")
 DEFAULTS = {
@@ -13,7 +14,41 @@ DEFAULTS = {
     "bonus_minutes": 0, "today_used_seconds": 0,
     "last_used_date": "", "disabled_apps": [], "category_tabs": False,
     "speak_titles": False, "speak_voice": "male",
+    "allowed_from": "", "allowed_until": "", "window_override_date": "",
 }
+CLOCK_PATTERN = re.compile(r"([01][0-9]|2[0-3]):[0-5][0-9]")
+
+
+def clock_minutes(value):
+    """'HH:MM' als Minuten seit Mitternacht; ValueError bei ungültigem Wert."""
+    if not isinstance(value, str) or not CLOCK_PATTERN.fullmatch(value):
+        raise ValueError(t('Ungültige Uhrzeit: ') + str(value))
+    return int(value[:2]) * 60 + int(value[3:])
+
+
+def usage_window(data):
+    """(von, bis) in Minuten oder None ohne Nutzungszeitraum; ValueError bei ungültigen Werten."""
+    start, end = data.get("allowed_from", ""), data.get("allowed_until", "")
+    if start == "" and end == "":
+        return None
+    start, end = clock_minutes(start), clock_minutes(end)
+    if start == end:
+        raise ValueError(t('Ungültiger Nutzungszeitraum.'))
+    return start, end
+
+
+def in_usage_window(data, now=None):
+    """None ohne Nutzungszeitraum, sonst ob die Uhrzeit darin liegt (auch über Mitternacht)."""
+    window = usage_window(data)
+    if window is None:
+        return None
+    now = now or datetime.now()
+    # Mit dem Eltern-PIN für heute freigeschaltet.
+    if data.get("window_override_date") == str(now.date()):
+        return True
+    minute = now.hour * 60 + now.minute
+    start, end = window
+    return start <= minute < end if start < end else minute >= start or minute < end
 
 
 def app_with_current_title(item):
@@ -70,6 +105,8 @@ def update_settings(change=None):
             if type(value) is not int or value < 0:
                 raise ValueError(t('Ungültiger Bildschirmzeit-Wert: ') + key)
             data[key] = value
+        # Auch ein beschädigter Nutzungszeitraum wird nicht still ersetzt.
+        usage_window(data)
         if not isinstance(data["disabled_apps"], list):
             data["disabled_apps"] = []
         data["pin"] = str(data["pin"])
@@ -93,7 +130,10 @@ def read_settings():
     return update_settings()
 
 
-def remaining_seconds(data):
+def remaining_seconds(data, now=None):
+    # Außerhalb des Nutzungszeitraums ist keine Zeit verfügbar, auch ohne Tageslimit.
+    if in_usage_window(data, now) is False:
+        return 0
     # 0 als Tageslimit bleibt unbegrenzt, auch wenn Bonuszeit eingetragen ist.
     if data["daily_limit_minutes"] <= 0:
         return None

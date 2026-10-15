@@ -16,7 +16,8 @@ import shutil
 import subprocess
 from contextlib import contextmanager
 from paimenos.categories import app_category
-from paimenos.state import atomic_json, read_settings, update_settings, remaining_seconds, app_with_current_title
+from paimenos import state as state_module
+from paimenos.state import atomic_json, read_settings, update_settings, remaining_seconds, in_usage_window, app_with_current_title
 
 APPS_FILE = str(CONFIG_DIR / "apps.json")
 ICONS_DIR = os.path.expanduser('~/.local/share/paimenos/icons')
@@ -119,6 +120,21 @@ def set_time(limit):
     return update_settings({'daily_limit_minutes': minute_value(limit)})
 
 
+def set_window(start, end):
+    start, end = (start or '').strip(), (end or '').strip()
+    if not start and not end:
+        return update_settings({'allowed_from': '', 'allowed_until': '', 'window_override_date': ''})
+    if not start or not end:
+        raise ValueError(t('Bitte Beginn und Ende des Nutzungszeitraums angeben oder beide leeren.'))
+    if start == end:
+        raise ValueError(t('Beginn und Ende des Nutzungszeitraums müssen verschieden sein.'))
+    try:
+        state_module.clock_minutes(start), state_module.clock_minutes(end)
+    except ValueError:
+        raise ValueError(t('Bitte Uhrzeiten im Format HH:MM eingeben.')) from None
+    return update_settings({'allowed_from': start, 'allowed_until': end, 'window_override_date': ''})
+
+
 def add_bonus(value):
     minutes = minute_value(value)
     if minutes == 0:
@@ -146,7 +162,9 @@ def usage(data=None):
     total = (st['daily_limit_minutes'] + st['bonus_minutes']) * 60
     return {'used': st['today_used_seconds'], 'remaining': remaining,
             'limit': st['daily_limit_minutes'], 'bonus': st['bonus_minutes'],
-            'percent': min(100, int(st['today_used_seconds'] / total * 100)) if remaining is not None else 0}
+            'window_from': st['allowed_from'], 'window_until': st['allowed_until'],
+            'window_open': in_usage_window(st),
+            'percent': min(100, int(st['today_used_seconds'] / total * 100)) if total and st['daily_limit_minutes'] > 0 else 0}
 
 
 def duration(seconds):

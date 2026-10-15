@@ -2,7 +2,8 @@
 from paimenos.i18n import t, setup_qt
 from paimenos.paths import CONFIG_DIR
 import sys, os, json, subprocess
-from paimenos.state import read_settings, update_settings, remaining_seconds
+from datetime import date
+from paimenos.state import read_settings, update_settings, remaining_seconds, in_usage_window
 from paimenos.foreground import ForegroundGuard
 from PyQt5.QtCore import QSize, Qt, QTimer
 from PyQt5.QtGui import QFont, QIcon, QPixmap
@@ -69,12 +70,24 @@ class LockScreen(QWidget):
         icon_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(icon_label)
 
-        title_label = QLabel(t('Die Bildschirmzeit ist für heute abgelaufen!'), self)
+        try:
+            outside = in_usage_window(self.settings) is False
+        except ValueError:
+            outside = False
+        if outside:
+            title = t('Jetzt ist keine Nutzungszeit!')
+            hint = t('Du kannst den Computer von {value0} bis {value1} Uhr nutzen.',
+                     value0=self.settings["allowed_from"], value1=self.settings["allowed_until"])
+        else:
+            title = t('Die Bildschirmzeit ist für heute abgelaufen!')
+            hint = t('Deine Apps bleiben geöffnet. Rufe deine Eltern zum Fortsetzen oder Speichern.')
+        title_label = QLabel(title, self)
         title_label.setFont(QFont("DejaVu Sans", 32, QFont.Bold))
         title_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(title_label)
 
-        sub_label = QLabel(t('Deine Apps bleiben geöffnet. Rufe deine Eltern zum Fortsetzen oder Speichern.'), self)
+        sub_label = QLabel(hint, self)
+        sub_label.setWordWrap(True)
         sub_label.setFont(QFont("DejaVu Sans", 20))
         sub_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(sub_label)
@@ -87,8 +100,12 @@ class LockScreen(QWidget):
         add_time_btn = QPushButton(t('➕ Zeit hinzufügen (Eltern)'), self)
         add_time_btn.setCursor(Qt.PointingHandCursor)
         add_time_btn.clicked.connect(self.add_time_dialog)
+        if outside:
+            # Bonuszeit hebt den Zeitraum nicht auf; der Eltern-PIN schaltet für heute frei.
+            add_time_btn.setText(t('🔓 Mit Eltern-PIN freischalten'))
+            add_time_btn.clicked.disconnect()
+            add_time_btn.clicked.connect(self.unlock_window_dialog)
         btn_layout.addWidget(add_time_btn)
-
         btn_layout.addSpacing(30)
 
         shutdown_btn = QPushButton(t('Herunterfahren'), self)
@@ -132,6 +149,23 @@ class LockScreen(QWidget):
         self.refresh_timer.stop()
         try:
             self.request_bonus()
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            QMessageBox.warning(self, t('Datenfehler'), str(exc))
+        finally:
+            self.refresh_timer.start(1000)
+
+    def unlock_window_dialog(self):
+        self.refresh_timer.stop()
+        try:
+            pin, ok_pin = QInputDialog.getText(
+                self, t('🔒 Eltern-PIN'), t('Bitte Eltern-PIN eingeben:'), QLineEdit.Password)
+            if ok_pin and pin == load_settings()["pin"]:
+                update_settings({"window_override_date": str(date.today())})
+                QMessageBox.information(self, t('Erfolg'), t('Das Gerät ist für heute freigeschaltet.'))
+                QApplication.quit()
+                return
+            if ok_pin:
+                QMessageBox.warning(self, t('Falsch'), t('Falscher PIN!'))
         except (OSError, ValueError, KeyError, TypeError) as exc:
             QMessageBox.warning(self, t('Datenfehler'), str(exc))
         finally:

@@ -525,6 +525,18 @@ def time_page():
     return render(body, t('Bildschirmzeit'), 'time_page')
 
 
+@app.route('/time/window', methods=['POST'])
+@login_required
+def time_window():
+    try:
+        saved = parents.set_window(request.form.get('allowed_from'), request.form.get('allowed_until'))
+    except ValueError as exc:
+        flash(str(exc), 'error')
+    else:
+        flash(t('Nutzungszeitraum gespeichert.') if saved['allowed_from'] else t('Nutzungszeitraum entfernt.'))
+    return redirect(url_for('time_page'))
+
+
 @app.route('/bonus', methods=['POST'])
 @login_required
 def bonus():
