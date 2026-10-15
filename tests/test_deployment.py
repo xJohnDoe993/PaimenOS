@@ -162,6 +162,19 @@ class DeploymentTests(unittest.TestCase):
             deploy.apply_units(prior, previous=release, unit_root=unit_root)
             self.assertIn(unittest.mock.call(['systemctl', 'disable', '--now', 'paimenos-updates.service'], check=True), run.call_args_list)
             self.assertFalse((unit_root / 'system/paimenos-updates.service').exists())
+    def test_print_service_is_enabled_on_every_update_when_installed(self):
+        release = self.initial()
+        unit_root = self.root / 'etc-units'
+        unit_root.mkdir()
+        run = unittest.mock.Mock()
+        with patch.object(deploy, 'BASE', self.base):
+            (self.base / 'current/systemd/system').mkdir(parents=True, exist_ok=True)
+            (self.base / 'current/systemd/system/paimenos-print.service').write_text('[Unit]\n')
+            deploy.enable_installed_units(run, unit_root)
+            run.assert_not_called()
+            (unit_root / 'paimenos-print.service').write_text('[Unit]\n')
+            deploy.enable_installed_units(run, unit_root)
+            run.assert_called_once_with(['systemctl', 'enable', 'paimenos-print.service'], check=True)
     def test_unit_install_failure_restores_previous_units_and_code(self):
         old = self.initial()
         path = self.source / 'src/paimenos/controller.py'

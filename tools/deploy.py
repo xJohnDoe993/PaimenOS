@@ -231,7 +231,17 @@ def user_command(*args):
     return ['runuser', '-u', 'kids', '--', 'env', 'XDG_RUNTIME_DIR=' + str(runtime),
             'DBUS_SESSION_BUS_ADDRESS=unix:path=' + str(runtime / 'bus'), 'systemctl', '--user', *args]
 
+# Dienste, die jedes Update aktiviert, auch wenn der (ältere) Deployer sie nicht kannte oder die
+# Komponente „services“ unverändert war. Nur Dienste, die nie bewusst abgeschaltet werden.
+ALWAYS_ENABLED_UNITS = ('paimenos-print.service',)
+
+def enable_installed_units(run=subprocess.run, unit_root=Path('/etc/systemd/system')):
+    for unit in ALWAYS_ENABLED_UNITS:
+        if (BASE / 'current/systemd/system' / unit).is_file() and (unit_root / unit).is_file():
+            run(['systemctl', 'enable', unit], check=True)
+
 def restart_services():
+    enable_installed_units()
     units = ['paimenos-wifi.service', 'paimenos-bluetooth.service', 'paimenos-emulators.service', 'paimenos-parent-web.service']
     units += [unit for unit in OPTIONAL_SYSTEM_UNITS if (BASE / 'current/systemd/system' / unit).is_file()]
     subprocess.run(['systemctl', 'restart', *units], check=True)
