@@ -16,7 +16,7 @@ from paimenos import printing
 class FakeDriver:
     def __init__(self):
         self.queues = {'Laser': dict(info='Laser Flur', model='Brother', uri='ipp://192.168.1.20/ipp/print', state=3, message='',
-                                     accepting=True, shared=True, hold_default='no-hold')}
+                                     accepting=True, shared=True, hold_default='no-hold', color=True, color_default='color')}
         self.active, self.done, self.calls, self.default_name = {}, {}, [], 'Laser'
 
     def printers(self):
@@ -30,7 +30,7 @@ class FakeDriver:
 
     def job(self, number, user='kids', state=4):
         self.active[number] = dict(title='Bild', printer='Laser', user=user, state=state, created=1, completed=0,
-                                   size_kb=12, pages=1, reason='')
+                                   size_kb=12, pages=1, reason='', color_mode='color')
 
     def accept(self, name, enabled):
         self.calls.append(('accept', name, enabled)); self.queues[name]['accepting'] = enabled
@@ -47,6 +47,12 @@ class FakeDriver:
     def release(self, number):
         self.calls.append(('release', number)); self.active[number]['state'] = 3
 
+    def set_job_color(self, number, mode):
+        self.calls.append(('job_color', number, mode)); self.active[number]['color_mode'] = mode
+
+    def set_printer_color(self, name, mode):
+        self.calls.append(('printer_color', name, mode)); self.queues[name]['color_default'] = mode
+
     def cancel(self, number):
         self.calls.append(('cancel', number)); del self.active[number]
 
@@ -58,7 +64,8 @@ class FakeDriver:
 
     def add(self, name, title, uri, device=None):
         self.calls.append(('add', name, title, uri))
-        self.queues[name] = dict(info=title, model='', uri=uri, state=3, message='', accepting=True, shared=False, hold_default='no-hold')
+        self.queues[name] = dict(info=title, model='', uri=uri, state=3, message='', accepting=True, shared=False,
+                                 hold_default='no-hold', color=False, color_default='monochrome')
 
     def remove(self, name):
         self.calls.append(('remove', name)); del self.queues[name]
@@ -106,6 +113,28 @@ class ControllerTests(unittest.TestCase):
         del self.driver.active[7]
         self.controller.enforce()
         self.assertEqual(json.loads(self.path.read_text())['released'], [])
+
+    def test_colour_jobs_can_be_released_in_black_and_white(self):
+        self.controller.handle(dict(action='mode', mode='approval'))
+        self.driver.job(7)
+        self.assertEqual([(j['color'], j['monochrome']) for j in self.controller.snapshot()['jobs']], [(True, False)])
+        state = self.controller.handle(dict(action='release', job='7', color='monochrome'))
+        # Erst umstellen, dann freigeben: sonst druckt CUPS womöglich schon in Farbe.
+        self.assertEqual(self.driver.calls[-2:], [('job_color', 7, 'monochrome'), ('release', 7)])
+        self.assertTrue(state['jobs'][0]['monochrome'])
+        self.driver.job(8)
+        self.controller.handle(dict(action='release', job='8', color=''))
+        self.assertNotIn(('job_color', 8, 'monochrome'), self.driver.calls)
+        with self.assertRaises(ValueError):
+            self.controller.handle(dict(action='release', job='8', color='sepia'))
+
+    def test_printer_can_always_print_black_and_white(self):
+        state = self.controller.handle(dict(action='printer_color', printer='Laser', mode='monochrome'))
+        self.assertEqual([(p['color'], p['monochrome']) for p in state['printers']], [(True, True)])
+        self.controller.handle(dict(action='printer_color', printer='Laser', mode='color'))
+        self.assertEqual(self.driver.queues['Laser']['color_default'], 'color')
+        with self.assertRaises(ValueError):
+            self.controller.handle(dict(action='printer_color', printer='Laser', mode='grau'))
 
     def test_direct_mode_prints_without_hold_and_jobs_stay_visible(self):
         self.controller.handle(dict(action='mode', mode='direct'))

@@ -50,6 +50,7 @@
     const parts = [job.printer_title, when(job.created)];
     if (job.pages) parts.push(job.pages + PaimenTranslate(' Seiten'));
     if (job.size_kb) parts.push(job.size_kb + ' KB');
+    if (job.color) parts.push(job.monochrome ? PaimenTranslate('Schwarz-Weiß') : PaimenTranslate('Farbe'));
     return parts.filter(Boolean).join(' · ');
   }
   function jobCard(job) {
@@ -60,6 +61,8 @@
     const actions = el('div', '', 'actions');
     if (job.document) actions.append(viewLink(job));
     if (job.state === 'held') actions.append(button(PaimenTranslate('Freigeben'), () => act('release', {job: job.id}), ''));
+    // Farbdrucke lassen sich vor der Freigabe in Schwarz-Weiß umwandeln (spart Farbtinte).
+    if (job.state === 'held' && job.color && !job.monochrome) actions.append(button(PaimenTranslate('In Schwarz-Weiß freigeben'), () => act('release', {job: job.id, color: 'monochrome'})));
     actions.append(button(PaimenTranslate('Verwerfen'), () => { if (confirm(PaimenTranslate('Druckauftrag verwerfen?'))) act('cancel', {job: job.id}); }, 'danger'));
     box.append(actions); return box;
   }
@@ -70,6 +73,12 @@
     if (printer.default) row.append(el('span', PaimenTranslate('Standard'), 'badge on'));
     box.append(row, el('h3', printer.title), el('p', [printer.model, printer.uri].filter(Boolean).join(' · '), 'muted small'));
     if (printer.status) box.append(el('p', printer.status, 'hint'));
+    if (printer.color) {
+      const checkLabel = el('label', '', 'check'), check = document.createElement('input');
+      check.type = 'checkbox'; check.checked = printer.monochrome; check.disabled = sending;
+      check.addEventListener('change', () => act('printer_color', {printer: printer.name, mode: check.checked ? 'monochrome' : 'color'}));
+      checkLabel.append(check, el('span', PaimenTranslate('Immer in Schwarz-Weiß drucken'))); box.append(checkLabel);
+    }
     const actions = el('div', '', 'actions');
     if (!printer.default) actions.append(button(PaimenTranslate('Als Standard'), () => act('default', {printer: printer.name})));
     const test = button(PaimenTranslate('Testseite'), () => act('test', {printer: printer.name})); test.disabled ||= state.mode === 'off'; actions.append(test);

@@ -699,7 +699,7 @@ def wifi_advanced():
 
 
 PRINTING_PAGE = _template('printing-page.html')
-PRINT_ACTIONS = {'mode': ('mode',), 'release': ('job',), 'cancel': ('job',), 'add': ('title', 'uri'),
+PRINT_ACTIONS = {'mode': ('mode',), 'release': ('job', 'color'), 'printer_color': ('printer', 'mode'), 'cancel': ('job',), 'add': ('title', 'uri'),
                  'remove': ('printer',), 'default': ('printer',), 'test': ('printer',), 'discover': ()}
 
 

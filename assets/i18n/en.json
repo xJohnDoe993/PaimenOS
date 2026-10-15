@@ -1533,5 +1533,13 @@
   "Zuletzt gedruckt": "Recently printed",
   "“ entfernen? Wartende Aufträge für diesen Drucker werden verworfen.": "”? Waiting jobs for this printer will be discarded.",
   "Druckaufträge: {value0}": "Print jobs: {value0}",
-  " · {value0} warten auf die Eltern": " · {value0} waiting for a parent"
+  " · {value0} warten auf die Eltern": " · {value0} waiting for a parent",
+  "Schwarz-Weiß": "Black and white",
+  "Farbe": "Colour",
+  "In Schwarz-Weiß freigeben": "Approve in black and white",
+  "Immer in Schwarz-Weiß drucken": "Always print in black and white",
+  "Druckauftrag in Schwarz-Weiß freigegeben.": "Print job approved in black and white.",
+  "Dieser Drucker druckt jetzt immer in Schwarz-Weiß.": "This printer now always prints in black and white.",
+  "Dieser Drucker druckt wieder in Farbe.": "This printer prints in colour again.",
+  "Der Auftrag konnte nicht auf Schwarz-Weiß umgestellt werden.": "Could not switch the job to black and white."
 }

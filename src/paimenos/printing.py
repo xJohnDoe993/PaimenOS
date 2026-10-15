@@ -32,7 +32,8 @@ URI_SCHEMES = ('ipp', 'ipps', 'dnssd', 'socket', 'lpd', 'usb', 'http', 'https')
 JOB_STATES = {3: 'pending', 4: 'held', 5: 'printing', 6: 'stopped', 7: 'canceled', 8: 'aborted', 9: 'completed'}
 JOB_ATTRIBUTES = ['job-id', 'job-name', 'job-originating-user-name', 'job-state', 'job-printer-uri', 'time-at-creation',
                   'time-at-completed', 'job-k-octets', 'job-impressions', 'job-impressions-completed', 'document-format',
-                  'job-state-reasons', 'job-printer-state-message']
+                  'job-state-reasons', 'job-printer-state-message', 'print-color-mode']
+COLOR_MODES = ('color', 'monochrome')
 # Diese Formate zeigt der Browser selbst an; alles andere wird heruntergeladen.
 INLINE_FORMATS = {'application/pdf': '.pdf', 'image/png': '.png', 'image/jpeg': '.jpg'}
 DOWNLOAD_FORMATS = {'application/postscript': '.ps', 'image/pwg-raster': '.pwg', 'image/urf': '.urf', 'text/plain': '.txt'}
@@ -232,13 +233,15 @@ class PrintController:
                 self.error = friendly_error(exc)
             listed = [dict(name=name, title=p['info'] or name, model=p['model'], uri=display_uri(p['uri']),
                            state=p['state'], status=p['message'], default=name == default,
-                           accepting=p['accepting']) for name, p in printers.items()]
+                           accepting=p['accepting'], color=p['color'], monochrome=p['color_default'] == 'monochrome')
+                      for name, p in printers.items()]
             listed.sort(key=lambda p: (not p['default'], p['title'].casefold()))
             def entry(number, job):
                 return dict(id=number, title=job['title'], printer=job['printer'],
                             printer_title=printers.get(job['printer'], {}).get('info') or job['printer'],
                             user=job['user'], state=JOB_STATES.get(job['state'], 'pending'), created=job['created'],
                             completed=job['completed'], size_kb=job['size_kb'], pages=job['pages'], reason=job['reason'],
+                            color=printers.get(job['printer'], {}).get('color', False), monochrome=job['color_mode'] == 'monochrome',
                             document=self.driver.has_document(number))
             active = sorted((entry(n, j) for n, j in jobs.items()), key=lambda j: -j['id'])
             done = sorted((entry(n, j) for n, j in history.items()), key=lambda j: -j['id'])[:HISTORY]
@@ -273,15 +276,29 @@ class PrintController:
                 if number not in self.driver.jobs():
                     raise ValueError(t('Der Druckauftrag ist nicht mehr vorhanden.'))
                 if action == 'release':
+                    monochrome = data.get('color') == 'monochrome'
+                    if data.get('color') not in (None, '', 'monochrome'):
+                        raise ValueError(t('Ungültige Druckeinstellung.'))
+                    if monochrome:
+                        # Vor der Freigabe ändern: CUPS liest die Option erst beim Drucken.
+                        self.driver.set_job_color(number, 'monochrome')
                     self.config['released'] = sorted(set(self.config['released']) | {number})
                     self.save()
                     self.driver.release(number)
-                    self.message = t('Druckauftrag freigegeben.')
+                    self.message = t('Druckauftrag in Schwarz-Weiß freigegeben.') if monochrome else t('Druckauftrag freigegeben.')
                 else:
                     self.driver.cancel(number)
                     self.message = t('Druckauftrag verworfen.')
             elif action == 'add':
                 return self.add(data)
+            elif action == 'printer_color':
+                name = data.get('printer')
+                if not isinstance(name, str) or name not in self.driver.printers():
+                    raise ValueError(t('Der Drucker ist nicht mehr vorhanden.'))
+                if data.get('mode') not in COLOR_MODES:
+                    raise ValueError(t('Ungültige Druckeinstellung.'))
+                self.driver.set_printer_color(name, data['mode'])
+                self.message = t('Dieser Drucker druckt jetzt immer in Schwarz-Weiß.') if data['mode'] == 'monochrome' else t('Dieser Drucker druckt wieder in Farbe.')
             elif action in ('remove', 'default', 'test'):
                 name = data.get('printer')
                 if not isinstance(name, str) or name not in self.driver.printers():
@@ -379,13 +396,17 @@ class CupsDriver:
         connection = self.connection()
         result = {}
         for name, attributes in connection.getPrinters().items():
-            extra = connection.getPrinterAttributes(name, requested_attributes=['job-hold-until-default', 'printer-is-accepting-jobs'])
+            extra = connection.getPrinterAttributes(name, requested_attributes=['job-hold-until-default', 'printer-is-accepting-jobs',
+                                                                             'print-color-mode-supported', 'print-color-mode-default'])
+            supported = extra.get('print-color-mode-supported', [])
+            supported = [supported] if isinstance(supported, str) else list(supported)
             result[name] = dict(info=str(attributes.get('printer-info', '')), model=str(attributes.get('printer-make-and-model', '')),
                                 uri=str(attributes.get('device-uri', '')), state=int(attributes.get('printer-state', 3)),
                                 message=str(attributes.get('printer-state-message', ''))[:200],
                                 accepting=bool(extra.get('printer-is-accepting-jobs', True)),
                                 shared=bool(attributes.get('printer-is-shared', False)),
-                                hold_default=str(extra.get('job-hold-until-default', 'no-hold')))
+                                hold_default=str(extra.get('job-hold-until-default', 'no-hold')),
+                                color='color' in supported, color_default=str(extra.get('print-color-mode-default', '')))
         return result
 
     def default(self):
@@ -408,7 +429,8 @@ class CupsDriver:
                 created=int(attributes.get('time-at-creation', 0) or 0), completed=int(attributes.get('time-at-completed', 0) or 0),
                 size_kb=int(attributes.get('job-k-octets', 0) or 0),
                 pages=int(attributes.get('job-impressions-completed', 0) or attributes.get('job-impressions', 0) or 0),
-                reason=str(attributes.get('job-printer-state-message', ''))[:200] if 'job-printing' not in reasons else '')
+                reason=str(attributes.get('job-printer-state-message', ''))[:200] if 'job-printing' not in reasons else '',
+                color_mode=str(attributes.get('print-color-mode', '')))
         return result
 
     def accept(self, name, enabled):
@@ -427,6 +449,20 @@ class CupsDriver:
 
     def hold(self, number):
         self.connection().setJobHoldUntil(number, 'indefinite')
+
+    def set_job_color(self, number, mode):
+        # pycups kennt kein Set-Job-Attributes; lp -i ändert die Option und lässt den Auftrag angehalten.
+        result = subprocess.run(['/usr/bin/lp', '-i', str(number), '-o', 'print-color-mode=' + mode],
+                                capture_output=True, text=True, timeout=20)
+        if result.returncode:
+            raise PrintError(t('Der Auftrag konnte nicht auf Schwarz-Weiß umgestellt werden.'))
+
+    def set_printer_color(self, name, mode):
+        connection = self.connection()
+        if mode == 'monochrome':
+            connection.addPrinterOptionDefault(name, 'print-color-mode', 'monochrome')
+        else:
+            connection.deletePrinterOptionDefault(name, 'print-color-mode')
 
     def release(self, number):
         self.connection().setJobHoldUntil(number, 'no-hold')

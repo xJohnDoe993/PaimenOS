@@ -16,6 +16,13 @@ Testseite geprüft und entfernt.
 Der Modus liegt root-eigen in `/var/lib/paimenos/printing/settings.json` (lesbar für die Firefox-Profile des
 Kindes, schreibbar nur für den Dienst). Firefox übernimmt eine Änderung beim nächsten Start einer Webapp.
 
+## Schwarz-Weiß
+
+Bei Farbdruckern bietet jede wartende Karte **In Schwarz-Weiß freigeben**: Der Dienst setzt vor der Freigabe
+`print-color-mode=monochrome` auf den angehaltenen Auftrag (`lp -i`). Die Druckerkarte hat zusätzlich
+**Immer in Schwarz-Weiß drucken** (`print-color-mode-default`), das auch im Modus „Ohne Freigabe“ greift.
+Die Vorschau zeigt weiterhin das Originaldokument.
+
 ## Aufbau
 
 - `paimenos-print.service` (`src/paimenos/printing.py`) läuft als root, spricht über pycups mit CUPS und
