@@ -222,6 +222,12 @@ def updates_action():
         return jsonify(ok=False, error=str(exc)), 409
 
 
+# Im Hintergrund geprüft, damit die Startseite ohne Internet nicht auf Socket-Zeitlimits wartet.
+OFFLINE_NETWORK = NetworkStatus()
+if offline_complete.pending():
+    OFFLINE_NETWORK.value()  # Erste Prüfung schon beim Start, damit die erste Startseite ein Ergebnis hat.
+
+
 def offline_notice():
     """Hinweis nach einer Offline-Installation: nur sichtbar, solange etwas nachzuholen ist."""
     if not offline_complete.pending():
@@ -230,7 +236,8 @@ def offline_notice():
         job = install_request('complete_status')['complete_job']
     except (InstallError, KeyError):
         job = {'state': 'idle', 'message': ''}
-    return {'job': job, 'online': NetworkStatus.probe()}
+    online = job.get('state') != 'running' and OFFLINE_NETWORK.value()
+    return {'job': job, 'online': online}
 
 
 @app.route('/')

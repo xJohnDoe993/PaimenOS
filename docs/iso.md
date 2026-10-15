@@ -81,8 +81,9 @@ Die Liste steht in `installer/offline-packages.txt`; ein Test hält sie mit
   `/var/lib/paimenos/offline-install-pending` an. Solange er existiert, zeigt die Startseite
   des Elternbereichs den Hinweis „Offline installiert: noch nicht alles eingerichtet“. Sobald
   Internet erreichbar ist, holt der Knopf **Jetzt vervollständigen** den Mauszeiger (Bibata), die
-  Sprachausgabe und die Webseiten-Logos nach (Root-Dienst, `offline_complete.py`). Gelingt alles,
-  verschwindet der Merker; sonst bleibt der Hinweis und der Knopf lässt sich wiederholen. Es
+  Sprachausgabe und die Webseiten-Logos nach (Root-Dienst, `offline_complete.py`). Gelingen
+  Mauszeiger und Sprachausgabe, verschwindet der Merker; sonst bleibt der Hinweis und der Knopf lässt
+  sich wiederholen. Die Logos kommen von fremden Webseiten und zählen dafür, wie im Installer, nicht. Es
   passiert nichts automatisch auf dem Kindergerät. Emulatoren und Flathub-Apps wählen die Eltern
   weiterhin selbst auf den Seiten „Emulatoren“ und „Flatpak-Apps“.
 - **Signatur:** Der Build signiert das Repo. Mit dem GitHub-Secret

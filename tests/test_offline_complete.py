@@ -1,8 +1,10 @@
+import importlib.util
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
@@ -71,6 +73,15 @@ class CompleteTests(unittest.TestCase):
         self.assertFalse(result['steps']['speech'])
         self.assertTrue(result['steps']['cursor'])
 
+    def test_failed_logo_still_removes_marker(self):
+        jobs, root = self.jobs(Fake(fail=('curl',)))
+        with patch.object(oc.shutil, 'chown'):
+            result = jobs.start()
+        self.assertEqual(result['state'], 'done')
+        self.assertFalse((root / 'marker').exists())
+        self.assertFalse(result['steps']['logos'])
+        self.assertIn('Logos', result['message'])
+
     def test_english_has_no_logo_downloads(self):
         fake = Fake()
         jobs, root = self.jobs(fake, lang='en')
@@ -88,6 +99,41 @@ class CompleteTests(unittest.TestCase):
         text = (ROOT / 'iso/setup-after-install.sh').read_text()
         self.assertIn('offline-install-pending', text)
         self.assertLess(text.index('install -D -m 0644 /dev/null "$OFFLINE_MARKER"'), text.index('bash "$SOURCE/install.sh"'))
+
+
+@unittest.skipUnless(importlib.util.find_spec('flask'), 'Flask required')
+class NoticeTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        from paimenos import paths
+        cls.tmp = tempfile.TemporaryDirectory()
+        with patch.object(paths, 'CONFIG_DIR', Path(cls.tmp.name)):
+            from paimenos import parent_web
+        cls.web = parent_web
+
+    @classmethod
+    def tearDownClass(cls): cls.tmp.cleanup()
+
+    def notice(self, job, online=True):
+        with patch.object(self.web.offline_complete, 'pending', return_value=True), \
+                patch.object(self.web, 'install_request', return_value={'complete_job': job}), \
+                patch.object(self.web.NetworkStatus, 'probe', side_effect=AssertionError('blocking probe')), \
+                patch.object(self.web.OFFLINE_NETWORK, 'value', return_value=online) as value:
+            return self.web.offline_notice(), value
+
+    def test_uses_the_background_network_status(self):
+        notice, value = self.notice({'state': 'idle', 'message': ''})
+        self.assertTrue(notice['online'])
+        value.assert_called_once()
+
+    def test_running_job_skips_the_network_check(self):
+        notice, value = self.notice({'state': 'running', 'message': '', 'percent': 10})
+        self.assertFalse(notice['online'])
+        value.assert_not_called()
+
+    def test_hidden_without_marker(self):
+        with patch.object(self.web.offline_complete, 'pending', return_value=False):
+            self.assertIsNone(self.web.offline_notice())
 
 
 if __name__ == '__main__':

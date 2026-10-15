@@ -1436,5 +1436,6 @@
   "Offline installiert: noch nicht alles eingerichtet": "Installed offline: setup not complete yet",
   "Dieses Gerät wurde ohne Internet eingerichtet. Es fehlen noch der Mauszeiger (Bibata), die Sprachausgabe und die Logos der Webseiten. Emulatoren und Flathub-Apps lassen sich auf den Seiten „Emulatoren“ und „Flatpak-Apps“ nachholen.": "This device was set up without internet. The mouse pointer (Bibata), speech output and website logos are still missing. Emulators and Flathub apps can be added on the “Emulators” and “Flatpak apps” pages.",
   "Jetzt vervollständigen": "Complete now",
-  "Kein Internet erreichbar. Bitte zuerst das Netzwerk verbinden.": "No internet connection. Please connect to a network first."
+  "Kein Internet erreichbar. Bitte zuerst das Netzwerk verbinden.": "No internet connection. Please connect to a network first.",
+  "Nachgeholt. Einige Logos ließen sich nicht laden; die Kacheln zeigen dann ein Ersatzbild. Der Mauszeiger gilt nach dem nächsten Neustart.": "Completed. Some logos could not be loaded; those tiles show a placeholder. The mouse pointer applies after the next restart."
 }

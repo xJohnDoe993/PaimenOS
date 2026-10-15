@@ -2,7 +2,8 @@
 
 Das Setup legt MARKER an, wenn es ohne Internet lief. Der Elternbereich zeigt dann einen Hinweis; erst der Knopf
 startet diesen Auftrag. Er holt Mauszeiger, Sprachausgabe und Webapp-Logos nach. Emulatoren und Flathub-Apps
-bleiben eigene Seiten im Elternbereich. Der Merker verschwindet nur, wenn alle Schritte gelungen sind.
+bleiben eigene Seiten im Elternbereich. Der Merker verschwindet, sobald Mauszeiger und Sprachausgabe gelungen sind;
+die Logos sind wie im Installer nur ein Versuch, weil sie von fremden Webseiten kommen.
 """
 from paimenos.i18n import language, t
 import copy
@@ -133,21 +134,24 @@ class CompleteJobs:
         return ok
 
     def worker(self):
-        steps = [('cursor', t('Mauszeiger (Bibata)'), self.step_cursor),
-                 ('speech', t('Sprachausgabe'), self.step_speech),
-                 ('logos', t('Logos der Webseiten'), self.step_logos)]
+        # (Schlüssel, Titel, Aktion, nötig für den Merker)
+        steps = [('cursor', t('Mauszeiger (Bibata)'), self.step_cursor, True),
+                 ('speech', t('Sprachausgabe'), self.step_speech, True),
+                 ('logos', t('Logos der Webseiten'), self.step_logos, False)]
         results = {}
         try:
-            for index, (key, title, action) in enumerate(steps):
+            for index, (key, title, action, _required) in enumerate(steps):
                 self.report(t('{title} wird geladen …', title=title), percent=int(100 * index / len(steps)))
                 try:
                     results[key] = bool(action())
                 except Exception:
                     results[key] = False
                 self.report(t('{title}: {result}', title=title, result=t('fertig') if results[key] else t('fehlgeschlagen')), steps=dict(results))
-            if all(results.values()):
+            if all(results[key] for key, _title, _action, required in steps if required):
                 self.marker.unlink(missing_ok=True)
-                self.report(t('Alles nachgeholt. Der Mauszeiger gilt nach dem nächsten Neustart.'), percent=100, state='done')
+                message = (t('Alles nachgeholt. Der Mauszeiger gilt nach dem nächsten Neustart.') if all(results.values())
+                           else t('Nachgeholt. Einige Logos ließen sich nicht laden; die Kacheln zeigen dann ein Ersatzbild. Der Mauszeiger gilt nach dem nächsten Neustart.'))
+                self.report(message, percent=100, state='done')
             else:
                 self.report(t('Nicht alles ließ sich nachholen. Internet prüfen und erneut versuchen.'), percent=100, state='error')
         except Exception as exc:
