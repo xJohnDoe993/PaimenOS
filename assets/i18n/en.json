@@ -1541,5 +1541,6 @@
   "Druckauftrag in Schwarz-Weiß freigegeben.": "Print job approved in black and white.",
   "Dieser Drucker druckt jetzt immer in Schwarz-Weiß.": "This printer now always prints in black and white.",
   "Dieser Drucker druckt wieder in Farbe.": "This printer prints in colour again.",
-  "Der Auftrag konnte nicht auf Schwarz-Weiß umgestellt werden.": "Could not switch the job to black and white."
+  "Der Auftrag konnte nicht auf Schwarz-Weiß umgestellt werden.": "Could not switch the job to black and white.",
+  " Seite": " page"
 }

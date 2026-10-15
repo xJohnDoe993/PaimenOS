@@ -48,7 +48,7 @@
   function viewLink(job) { const a = el('a', PaimenTranslate('Ansehen'), 'btn secondary'); a.href = documentUrl.replace('/0/', '/' + job.id + '/'); a.target = '_blank'; a.rel = 'noopener'; return a; }
   function details(job) {
     const parts = [job.printer_title, when(job.created)];
-    if (job.pages) parts.push(job.pages + PaimenTranslate(' Seiten'));
+    if (job.pages) parts.push(job.pages + (job.pages === 1 ? PaimenTranslate(' Seite') : PaimenTranslate(' Seiten')));
     if (job.size_kb) parts.push(job.size_kb + ' KB');
     if (job.color) parts.push(job.monochrome ? PaimenTranslate('Schwarz-Weiß') : PaimenTranslate('Farbe'));
     return parts.filter(Boolean).join(' · ');
