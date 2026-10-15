@@ -1,0 +1,36 @@
+[Unit]
+Description=PaimenOS Druckverwaltung für Eltern
+After=cups.service
+Wants=cups.service
+
+[Service]
+Type=simple
+User=root
+Group=kids
+WorkingDirectory=/usr/local/lib/paimenos/current
+Environment=PYTHONUNBUFFERED=1
+ExecStartPre=/usr/bin/python3 -I -c "import cups"
+ExecStart=/usr/bin/python3 -I /usr/local/lib/paimenos/current/run.py printing
+RuntimeDirectory=paimenos-print
+RuntimeDirectoryMode=0710
+StateDirectory=paimenos/printing
+StateDirectoryMode=0755
+UMask=0077
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=5
+NoNewPrivileges=true
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+# lpadmin fragt Netzwerkdrucker für IPP Everywhere selbst ab.
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+ReadWritePaths=/run/paimenos-print
+
+[Install]
+WantedBy=multi-user.target

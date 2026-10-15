@@ -12,6 +12,13 @@
       "libspeechd2",
       "speech-dispatcher",
       "speech-dispatcher-espeak-ng"
+    ],
+    "shared": [
+      "cups",
+      "cups-bsd",
+      "cups-filters",
+      "python3-cups",
+      "avahi-daemon"
     ]
   }
 }

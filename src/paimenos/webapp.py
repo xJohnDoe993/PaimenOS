@@ -5,6 +5,7 @@ import os
 import re
 from paimenos.paths import ASSETS_DIR
 from paimenos import hardware_profile, theme
+from paimenos.printing import print_mode
 from paimenos.state import read_settings
 import tempfile
 
@@ -111,8 +112,10 @@ def prepare_profile(profile_dir, template, extra_preferences=''):
     locale_preferences = (
         'user_pref("intl.locale.requested", ' + json.dumps(browser_locale()) + ');\n'
         'user_pref("intl.accept_languages", ' + json.dumps(languages) + ');\n')
+    # Drucken (Strg+P, Menü) nur, wenn die Eltern es im Elternbereich erlaubt haben.
+    printing = 'user_pref("print.enabled", true);\n' if print_mode() != 'off' else ''
     write_text(user_path, current.rstrip() + '\n' + BEGIN + '\n'
-               + PREFERENCES + locale_preferences + hardware_profile.firefox_preferences() + extra_preferences + END + '\n')
+               + PREFERENCES + printing + locale_preferences + hardware_profile.firefox_preferences() + extra_preferences + END + '\n')
     chrome_path = os.path.join(profile_dir, 'chrome', 'userChrome.css')
     current = read_text(chrome_path)
     if CHROME_IMPORT not in current:

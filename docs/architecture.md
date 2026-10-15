@@ -18,6 +18,7 @@ Seit 0.64.0 heißt das Produkt PaimenOS (Paimen: Finnisch für Schäfer). Das Py
 | `/home/kids/.config/openbox/` | Nur Openbox-Konfiguration und Autostart |
 | `/home/kids/.mozilla/paimenos-webapps/` | Browserprofile der Webapps |
 | `/var/lib/paimenos/` | Systemzustand der Emulator-Installation und Liste verwalteter Flatpak-Apps |
+| `/var/lib/paimenos/printing/` | Druckmodus und freigegebene Aufträge des Druckdienstes, root-eigen ([Drucken](printing.md)) |
 | `/var/lib/paimenos/updates/` | root-eigener Versionscache und dauerhafter Update-Auftrag |
 | `/var/cache/paimenos-updates/` | Temporäre Release-Downloads; nach Abschluss entfernt |
 | `/usr/local/share/paimenos/` | Heruntergeladene RetroArch-Profile und PSP-Zusatzdateien; kein Python-Programmcode |

@@ -23,6 +23,11 @@ nicht ohne PIN wieder hineinkommt, läuft der Eltern-Bereich in einem **flüchti
 vollständig (außer den Sperrdateien), und Firefox speichert weder Passwörter noch Formulardaten
 (`PARENT_PREFERENCES` in `src/paimenos/webapp.py`). Tests: `tests/test_browser.py`.
 
+## Drucken
+
+Die Seite **Drucken** zeigt Druckaufträge des Kindes zur Freigabe und verwaltet die Drucker; Details in
+[printing.md](printing.md).
+
 ## Netzwerkeditor
 
 Schul- und Firmennetze sowie VPN richtet der Netzwerkeditor (`nm-connection-editor`) ein. Die WLAN-Seite hat dafür

@@ -5,7 +5,7 @@ import json
 
 ROOT = Path(__file__).resolve().parents[1]
 groups = {
-    'shared': ['__init__', 'i18n', 'paths', 'state', 'theme', 'diagnostics', 'images', 'media_files', 'categories', 'fullscreen', 'webapp', 'osd_state', 'hardware_profile', 'pronunciation'],
+    'shared': ['__init__', 'i18n', 'paths', 'state', 'theme', 'diagnostics', 'images', 'media_files', 'categories', 'fullscreen', 'webapp', 'osd_state', 'hardware_profile', 'pronunciation', 'printing'],
     'desktop': ['menu', 'menu_tiles', 'menu_camera', 'menu_support', 'speech', 'video', 'status_overlay', 'close_overlay', 'browser', 'lockscreen', 'timer', 'media', 'screen_guard', 'foreground', 'idle', 'power'],
     'controller': ['controller', 'controller_profiles', 'input_devices'],
     'network': ['wifi', 'bluetooth', 'network_status'],

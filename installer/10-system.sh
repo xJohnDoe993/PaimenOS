@@ -51,6 +51,7 @@ if apt-get install -y \
     polkitd \
     network-manager wpasupplicant \
     network-manager-gnome \
+    cups cups-bsd python3-cups \
     xterm \
     pciutils \
     usbutils \
