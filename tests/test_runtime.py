@@ -62,6 +62,40 @@ class RuntimeTests(unittest.TestCase):
                 result = state.read_settings()
                 self.assertEqual(state.remaining_seconds(result), 2035)
                 self.assertEqual(json.loads(path.read_text())['daily_limit_minutes'], 30)
+    def test_usage_window_blocks_outside_and_pin_override_unlocks_for_today(self):
+        from datetime import datetime
+        data = dict(state.DEFAULTS, pin='1234')
+        at = lambda h, m=0: datetime(2026, 10, 15, h, m)
+        self.assertIsNone(state.in_usage_window(data, at(3)))
+        self.assertIsNone(state.remaining_seconds(data, at(3)))
+        data.update(allowed_from='10:00', allowed_until='18:00')
+        self.assertFalse(state.in_usage_window(data, at(9, 59)))
+        self.assertTrue(state.in_usage_window(data, at(10)))
+        self.assertFalse(state.in_usage_window(data, at(18)))
+        self.assertEqual(state.remaining_seconds(data, at(20)), 0)
+        self.assertIsNone(state.remaining_seconds(data, at(12)))
+        data['window_override_date'] = '2026-10-15'
+        self.assertTrue(state.in_usage_window(data, at(20)))
+        self.assertFalse(state.in_usage_window(dict(data, window_override_date='2026-10-14'), at(20)))
+        data.update(allowed_from='20:00', allowed_until='06:00', window_override_date='')
+        self.assertTrue(state.in_usage_window(data, at(23)))
+        self.assertTrue(state.in_usage_window(data, at(5)))
+        self.assertFalse(state.in_usage_window(data, at(12)))
+
+    def test_usage_window_validation(self):
+        with tempfile.TemporaryDirectory(dir=ROOT.parent) as folder:
+            path = Path(folder) / 'settings.json'
+            subprocess.run([sys.executable, str(ROOT / 'tools/initialize-settings.py'), str(path), '456789'], check=True)
+            with patch.object(state, 'SETTINGS_FILE', str(path)):
+                for start, end in (('10:00', ''), ('10:00', '10:00'), ('25:00', '12:00'), ('ab', 'cd')):
+                    with self.assertRaises(ValueError):
+                        parent.set_window(start, end)
+                self.assertEqual(parent.set_window('10:00', '18:00')['allowed_until'], '18:00')
+                self.assertEqual(parent.set_window('', '')['allowed_from'], '')
+                path.write_text(json.dumps(dict(json.loads(path.read_text()), allowed_from='xx', allowed_until='18:00')))
+                with self.assertRaises(ValueError):
+                    state.read_settings()
+
     def test_emulator_selection_aliases_dedup_and_invalid_input(self):
         self.assertEqual(emulator_catalog.selection('nes,gb,nes'), ['nes', 'gb'])
         self.assertEqual(emulator_catalog.selection('none'), [])

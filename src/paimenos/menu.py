@@ -917,6 +917,9 @@ class PaimenOSMenu(QWidget):
             self.timer_info_label.setText(t('⏳ Restzeit: {value0} Min.', value0=rem_min))
         else:
             self.timer_info_label.setText("")
+        if settings.get("allowed_from") and settings.get("allowed_until"):
+            window = t('🕒 Nutzungszeit: {value0}–{value1} Uhr', value0=settings["allowed_from"], value1=settings["allowed_until"])
+            self.timer_info_label.setText((self.timer_info_label.text() + "  ·  " + window).lstrip(" ·"))
         self.timer_info_label.setVisible(bool(self.timer_info_label.text()))
 
 def report_exception(kind, value, trace):

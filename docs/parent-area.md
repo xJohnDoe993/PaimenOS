@@ -41,3 +41,4 @@ Kinder-Menü stehen.
 - Fällt der Webdienst aus, gibt es am Gerät keinen Eltern-Bereich, bis er wieder läuft (systemd startet ihn neu).
 - Das Fenster braucht einen Browserstart (auf alten Laptops einige Sekunden) statt eines sofort offenen Dialogs.
 - Der Sperrbildschirm (Bildschirmzeit abgelaufen) hat weiter seinen eigenen kleinen PIN-Dialog für „Zeit hinzufügen“.
+- Ein optionaler Nutzungszeitraum (Bildschirmzeit → Nutzungszeitraum) sperrt das Gerät außerhalb der Uhrzeiten; der Sperrbildschirm bietet dann „Mit Eltern-PIN freischalten“ für den Rest des Tages.
