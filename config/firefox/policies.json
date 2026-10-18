@@ -11,9 +11,20 @@
     "DisableDeveloperTools": true,
     "BlockAboutConfig": true,
     "BlockAboutProfiles": true,
+    "BlockAboutAddons": true,
+    "BlockAboutSupport": true,
     "DisablePrivateBrowsing": true,
     "DisableFirefoxScreenshots": true,
     "DisableSafeMode": true,
+    "WebsiteFilter": {
+      "Block": [
+        "file:///*"
+      ]
+    },
+    "DisableAccounts": true,
+    "DisableFormHistory": true,
+    "PasswordManagerEnabled": false,
+    "OfferToSaveLogins": false,
     "ExtensionSettings": {
       "uBlock0@raymondhill.net": {
         "installation_mode": "normal_installed",

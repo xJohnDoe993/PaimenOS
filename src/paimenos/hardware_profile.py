@@ -44,6 +44,11 @@ def detect(cpuinfo=None, meminfo=None):
     memory = _memory_gib(meminfo)
     name = model.lower()
     suggestion = DEFAULT
+    # ARM boards report no "model name"; Raspberry Pi 5 class is 'low', older Pis are weaker than a T450.
+    board = next((line.split(':', 1)[1].strip().lower() for line in cpuinfo.splitlines()
+                  if re.match(r'model\s*:', line.lower())), '')
+    if not model and 'raspberry pi' in board:
+        suggestion = 'low' if re.search(r'raspberry pi (5|500)\b', board) else 'ultra-low'
     intel = re.search(r'\bi([3579])-(\d{3,5})', name)
     ryzen = re.search(r'ryzen\s+([3579])\s+(?:pro\s+)?(\d)(\d)\d{2}', name)
     # Atom/Celeron/Pentium, Core 2, Core M, first-generation Core i (no model dash), old AMD APUs.

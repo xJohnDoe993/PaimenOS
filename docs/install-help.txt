@@ -1,4 +1,4 @@
-PaimenOS 0.64.0 – modulare Installation für frisches Debian 12/13
+PaimenOS 0.64.0 – modulare Installation für frisches Debian 12/13 (amd64, arm64; ARM wird automatisch erkannt)
 
 Installieren: sudo bash install.sh
 Abgebrochenes modulares Setup fortsetzen: sudo bash install.sh --resume

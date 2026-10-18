@@ -43,6 +43,14 @@ class DetectTests(unittest.TestCase):
             with self.subTest(model=model):
                 self.assertEqual(hp.detect(cpu(model), MEM), expected)
 
+    def test_arm_boards_are_detected_by_board_model(self):
+        def board(model):
+            return 'processor\t: 0\nBogoMIPS\t: 108.00\nModel\t\t: ' + model + '\n'
+        self.assertEqual(hp.detect(board('Raspberry Pi 5 Model B Rev 1.0'), MEM), 'low')
+        self.assertEqual(hp.detect(board('Raspberry Pi 4 Model B Rev 1.4'), MEM), 'ultra-low')
+        self.assertEqual(hp.detect(board('Raspberry Pi 5 Model B Rev 1.0'), 'MemTotal: 2000000 kB\n'), 'ultra-low')
+        self.assertEqual(hp.detect('processor\t: 0\nCPU part\t: 0xd0b\n', MEM), 'low')
+
     def test_little_memory_lowers_the_suggestion(self):
         self.assertEqual(hp.detect(cpu('Intel(R) Core(TM) i7-1260P'), 'MemTotal: 2900000 kB\n'), 'ultra-low')
         self.assertEqual(hp.detect(cpu('Intel(R) Core(TM) i7-1260P'), 'MemTotal: 3900000 kB\n'), 'low')
