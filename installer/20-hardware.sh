@@ -68,11 +68,19 @@ apt-get install -y --no-install-recommends \
     unattended-upgrades ca-certificates xserver-xorg-input-libinput
 
 # Firmware nur aus bereits eingerichteten Debian-Paketquellen beziehen.
-install_available_firmware firmware-misc-nonfree firmware-iwlwifi firmware-realtek firmware-atheros
-case "$(awk '/vendor_id/ {print $3; exit}' /proc/cpuinfo)" in
-    GenuineIntel) install_available_firmware intel-microcode ;;
-    AuthenticAMD) install_available_firmware amd64-microcode ;;
-esac
+if [[ "$PAIMENOS_IS_ARM" == 1 ]]; then
+    # Kein x86-Microcode und keine Intel-WLAN-Firmware; Raspberry Pi braucht Broadcom-WLAN und Boot-Firmware.
+    install_available_firmware firmware-misc-nonfree firmware-realtek firmware-atheros
+    if [[ "$PAIMENOS_IS_RPI" == 1 ]]; then
+        install_available_firmware firmware-brcm80211 raspi-firmware
+    fi
+else
+    install_available_firmware firmware-misc-nonfree firmware-iwlwifi firmware-realtek firmware-atheros
+    case "$(awk '/vendor_id/ {print $3; exit}' /proc/cpuinfo)" in
+        GenuineIntel) install_available_firmware intel-microcode ;;
+        AuthenticAMD) install_available_firmware amd64-microcode ;;
+    esac
+fi
 
 if [[ "$PAIMENOS_ENABLE_TLP" == 1 ]]; then
     mkdir -p /etc/tlp.d

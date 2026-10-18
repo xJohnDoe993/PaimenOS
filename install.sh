@@ -33,6 +33,7 @@ if [[ -e /usr/local/lib/paimenos/current && "$RESUME" != 1 ]]; then
     echo "$(paimenos_text 'Unvollständige modulare Installation gefunden. Fortsetzen: sudo bash install.sh --resume')" >&2
     exit 1
 fi
+source "${REPO_DIR}/installer/architecture.sh"
 exec 8>/run/paimenos-maintenance.lock
 if ! flock -n 8; then echo "$(paimenos_text 'Eine PaimenOS-Wartung läuft bereits.')" >&2; exit 1; fi
 installation_failed() {

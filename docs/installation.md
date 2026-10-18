@@ -96,7 +96,7 @@ Die globale Familien-DNS-Konfiguration setzt `Domains=~.`: Normale Internetabfra
 
 Als Familien-DNS dienen Cloudflare Family (`1.1.1.3`, `1.0.0.3`) und AdGuard DNS Family (`94.140.14.15`, `94.140.15.16`); beide blocken Erwachseneninhalte und Schadseiten, AdGuard erzwingt zusätzlich SafeSearch. Am 13. Oktober 2026 wurden alle vier mit 20 Abfragen je Server geprüft: 100 % erreichbar, im Mittel 23 bis 40 ms, `pornhub.com` und `xvideos.com` werden geblockt. Der zuvor genutzte zweite CleanBrowsing-Server (`185.228.169.168`) beantwortete im selben Test nur 16 von 20 Abfragen. Firefox nutzt zusätzlich per Richtlinie DNS über HTTPS mit `https://family.adguard-dns.com/dns-query` (gesperrt, mit Rückfall auf das System-DNS). Firefox löst Namen selbst per DoH auf; alle anderen Programme nutzen das System-DNS. Auf bereits eingerichteten Geräten wirkt die Änderung nach `sudo python3 tools/configure-dns.py family config/resolved/paimenos-family-dns.conf` und einem Firefox-Neustart (Richtlinien in `/etc/firefox/policies/`).
 
-Cookie-Banner blendet Firefox in zwei Stufen aus: `cookiebanners.service.mode = 1` lehnt Banner mit Regeln von Mozilla automatisch ab, und uBlock Origin bekommt per Richtlinie (`3rdparty` → `toOverwrite` in `config/firefox/policies.json`) zusätzlich zu den Standardlisten die Listen „EasyList – Cookie Notices“ (`fanboy-cookiemonster`) und „uBlock filters – Cookie Notices“ (`ublock-cookies-easylist`). Kein Verfahren erfasst jedes Banner; die Listen werden von uBlock bei bestehendem Internet nachgeladen. Auf bereits eingerichteten Geräten die Richtlinien neu installieren: `sudo install -m 0644 config/firefox/policies.json /etc/firefox/policies/policies.json` (gilt auch für die DoH-Einstellung), danach Firefox neu starten.
+Cookie-Banner blendet Firefox in zwei Stufen aus: `cookiebanners.service.mode = 1` lehnt Banner mit Regeln von Mozilla automatisch ab, und uBlock Origin bekommt per Richtlinie (`3rdparty` → `toOverwrite` in `config/firefox/policies.json`) zusätzlich zu den Standardlisten die Listen „EasyList – Cookie Notices“ (`fanboy-cookiemonster`) und „uBlock filters – Cookie Notices“ (`ublock-cookies-easylist`). Kein Verfahren erfasst jedes Banner; die Listen werden von uBlock bei bestehendem Internet nachgeladen. Auf bereits eingerichteten Geräten die Richtlinien neu installieren: `sudo install -m 0644 config/firefox/policies.json /etc/firefox/policies/policies.json` (gilt auch für die DoH-Einstellung und die Kindersicherungs-Richtlinien: `file://` gesperrt, `about:addons`/`about:support` gesperrt, kein Passwort-/Formularspeicher, keine Firefox-Konten). Zusätzlich entfernt die Autoconfig die Tastenkürzel für neue Tabs/Fenster (Strg+T/N, Strg+Umschalt+T/N/P, Strg+O) in den Kinderfenstern, der Eltern-Browser bleibt unverändert: `sudo install -m 0644 config/firefox/paimenos-autoconfig.js /usr/lib/firefox-esr/defaults/pref/` und `sudo install -m 0644 config/firefox/paimenos.cfg /usr/lib/firefox-esr/` (immer beide Dateien zusammen, sonst zeigt Firefox „Configuration Error“), danach Firefox neu starten.
 
 Die DNS-Sicherung liegt root-eigen unter `/var/lib/paimenos/install-dns.json`. Die Bootstrap-Konfiguration bleibt bis zur erfolgreichen Familien-DNS-Übernahme erhalten; sie kann auch eine bewusst gesetzte temporäre DNS-Reparatur übernehmen. Die Prüfungen bestätigen Namensauflösung, nicht die Filterwirkung auf jeder Netzwerkverbindung.
 
@@ -117,7 +117,7 @@ sudo env PAIMENOS_APPS="2 6 9 11" \
 | `PAIMENOS_APP_SOURCE` | Leer: interaktiv; `flathub` oder `debian` |
 | `PAIMENOS_EMULATORS` | Leer: interaktiv; `empfohlen`, `all`, `none` oder IDs mit Kommas |
 | `PAIMENOS_HARDWARE_PROFILE` | Leer: interaktiv mit Vorschlag; `ultra-low`, `low`, `medium` oder `high` (siehe [Hardware-Profile](hardware-profiles.md)) |
-| `PAIMENOS_ENABLE_TLP` | `1` / `0`, Standard `1` |
+| `PAIMENOS_ENABLE_TLP` | `1` / `0`, Standard `1` (auf ARM ohne Akku `0`) |
 | `PAIMENOS_ENABLE_ZRAM` | `1` / `0`, Standard `1` |
 | `PAIMENOS_ENABLE_AUTO_UPDATES` | Debian-Sicherheitsupdates, Standard `1` |
 | `PAIMENOS_ENABLE_APP_UPDATES` | Verwaltete Flatpak-Apps, Standard wie Auto-Updates |
@@ -164,3 +164,15 @@ sudo python3 /usr/local/lib/paimenos/current/tools/install-paimenos-speech.py
 ```
 
 Aktivieren und die Stimme (Frau oder Mann) wählen lässt sich im Eltern-Bereich unter **Einstellungen** (Standard: aus, Männerstimme). Piper läuft nicht dauerhaft: Das Menü erzeugt für jeden App-Namen einmalig eine WAV-Datei in `~/.local/share/paimenos/speech` (Dateiname aus Stimme und Text; ein Hintergrundprozess mit niedrigster Priorität, nur für fehlende Namen) und spielt beim Anwählen nur diese Datei ab. Neue oder umbenannte Apps bekommen ihre Aufnahme beim nächsten Neuladen der App-Liste, in der Regel innerhalb weniger Sekunden. `--check` zeigt, ob Piper und Stimme vorhanden sind.
+
+## ARM (arm64, Raspberry Pi)
+
+`install.sh` erkennt die Architektur über `dpkg --print-architecture` (`installer/architecture.sh`) und passt den Ablauf an:
+
+- Unterstützt sind `amd64` und `arm64`; `armhf` läuft mit Warnung (ungetestet). Andere Architekturen brechen vor Systemänderungen ab.
+- Statt Intel-/AMD-Microcode und Intel-WLAN-Firmware werden auf einem Raspberry Pi `firmware-brcm80211` und `raspi-firmware` installiert, sofern verfügbar.
+- TLP ist auf ARM ohne Akku standardmäßig aus (`PAIMENOS_ENABLE_TLP=1` erzwingt es).
+- Auf Raspberry Pi OS werden LightDM-Drop-ins mit Autologin/Pi-Sitzung nach `*.paimenos-disabled` umbenannt, damit der PaimenOS-Autologin gilt. Empfohlen ist Pi OS Lite (64-Bit) oder Debian arm64; Pi OS mit `ID=raspbian` (32-Bit) wird abgelehnt.
+- Emulator-Cores kommen auf arm64 von der aarch64-libretro-Buildbot-Quelle.
+
+Das ISO und der Installer unter `iso/` bleiben auf amd64 (BIOS/UEFI) beschränkt. Für ARM-Boards gibt es kein ISO; installiert wird auf einem vorhandenen Debian-Image.

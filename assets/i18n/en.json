@@ -1562,5 +1562,9 @@
   "🕒 Nutzungszeit: {value0}–{value1} Uhr": "🕒 Usage time: {value0}–{value1}",
   "🔓 Mit Eltern-PIN freischalten": "🔓 Unlock with parent PIN",
   "Das Gerät ist für heute freigeschaltet.": "The device is unlocked for today.",
-  "Nutzungszeitraum entfernen": "Remove usage period"
+  "Nutzungszeitraum entfernen": "Remove usage period",
+  "FEHLER: Architektur {value0} wird nicht unterstützt (amd64, arm64, armhf).": "ERROR: Architecture {value0} is not supported (amd64, arm64, armhf).",
+  "ARM-Gerät erkannt ({value0}); ARM-Anpassungen werden angewendet.": "ARM device detected ({value0}); applying ARM adjustments.",
+  "Hinweis: 32-Bit-ARM (armhf) ist ungetestet; 64-Bit-Debian (arm64) wird empfohlen.": "Note: 32-bit ARM (armhf) is untested; 64-bit Debian (arm64) is recommended.",
+  "Hinweis: Raspberry-Pi-OS-Anmeldekonfiguration {value0} wird deaktiviert.": "Note: Raspberry Pi OS login configuration {value0} is being disabled."
 }

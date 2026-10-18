@@ -21,6 +21,10 @@ STATE_SCRIPT="${PAIMENOS_DIR}/state.py"
 MARKER_FILE="/etc/paimenos-laptop.installed"
 
 # Optionale Laptop-Funktionen: 0 überspringt die Einrichtung, 1 aktiviert sie.
+# TLP ist für Laptops gedacht: auf ARM-Boards ohne Akku (z. B. Raspberry Pi) standardmäßig aus.
+if [[ -z "${PAIMENOS_ENABLE_TLP:-}" && "$PAIMENOS_IS_ARM" == 1 ]] && ! compgen -G '/sys/class/power_supply/BAT*' >/dev/null; then
+    PAIMENOS_ENABLE_TLP=0
+fi
 PAIMENOS_ENABLE_TLP="${PAIMENOS_ENABLE_TLP:-1}"
 PAIMENOS_ENABLE_ZRAM="${PAIMENOS_ENABLE_ZRAM:-1}"
 PAIMENOS_ENABLE_AUTO_UPDATES="${PAIMENOS_ENABLE_AUTO_UPDATES:-1}"

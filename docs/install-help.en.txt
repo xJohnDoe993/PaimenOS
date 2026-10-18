@@ -1,4 +1,4 @@
-PaimenOS – modular installation for fresh Debian 12/13
+PaimenOS – modular installation for fresh Debian 12/13 (amd64, arm64; ARM is detected automatically)
 
 Install: sudo bash install.sh
 Resume an interrupted modular setup: sudo bash install.sh --resume

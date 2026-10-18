@@ -207,7 +207,7 @@ def run_browser(profile, template, url, command=None, with_overlay=True, ephemer
             # Never modify a running profile, or delete its cache/cookies/lock files.
             if ephemeral:
                 wipe_profile(profile)
-                prepare_profile(profile, template, PARENT_PREFERENCES)
+                prepare_profile(profile, template, PARENT_PREFERENCES, context_menu=True)
             else:
                 prepare_profile(profile, template)
             if stopping:

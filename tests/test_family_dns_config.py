@@ -39,3 +39,28 @@ class FamilyDnsConfigTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class FirefoxPolicyHardeningTests(unittest.TestCase):
+    def test_kids_cannot_open_local_files_or_store_logins(self):
+        policies = json.loads((ROOT / 'config/firefox/policies.json').read_text())['policies']
+        self.assertIn('file:///*', policies['WebsiteFilter']['Block'])
+        for key in ('BlockAboutAddons', 'BlockAboutSupport', 'DisableAccounts', 'DisableFormHistory'):
+            self.assertIs(policies[key], True)
+        for key in ('PasswordManagerEnabled', 'OfferToSaveLogins'):
+            self.assertIs(policies[key], False)
+
+
+class FirefoxAutoconfigTests(unittest.TestCase):
+    def test_autoconfig_and_cfg_are_installed_together(self):
+        pref = (ROOT / 'config/firefox/paimenos-autoconfig.js').read_text()
+        cfg = (ROOT / 'config/firefox/paimenos.cfg').read_text()
+        installer = (ROOT / 'installer/50-browser.sh').read_text()
+        # Zeigt die Pref auf eine fehlende Datei, startet Firefox nur mit "Configuration Error".
+        self.assertIn('pref("general.config.filename", "paimenos.cfg");', pref)
+        self.assertTrue(cfg.startswith('//'))
+        for name in ('paimenos-autoconfig.js', 'paimenos.cfg'):
+            self.assertIn('config/firefox/' + name, installer)
+
+    def test_parent_profile_keeps_its_shortcuts(self):
+        self.assertIn("'parent-area'", (ROOT / 'config/firefox/paimenos.cfg').read_text())

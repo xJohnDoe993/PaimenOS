@@ -15,6 +15,18 @@ from paimenos import browser, webapp
 
 
 class BrowserTests(unittest.TestCase):
+    def test_crash_recovery_dialog_is_disabled_for_kids(self):
+        with tempfile.TemporaryDirectory() as folder:
+            webapp.prepare_profile(folder, str(Path(folder) / 'missing-template.js'))
+            self.assertIn('user_pref("toolkit.startup.max_resumed_crashes", -1);', (Path(folder) / 'user.js').read_text())
+
+    def test_context_menu_is_hidden_for_kids_but_not_for_parents(self):
+        for allowed in (False, True):
+            with self.subTest(allowed=allowed), tempfile.TemporaryDirectory() as folder:
+                webapp.prepare_profile(folder, str(Path(folder) / 'missing-template.js'), context_menu=allowed)
+                style = (Path(folder) / 'chrome/paimenos-webapp.css').read_text()
+                self.assertEqual('#contentAreaContextMenu { display: none !important; }' in style, not allowed)
+
     def test_existing_profiles_disable_restore_suggestion_without_removing_session_data(self):
         pref = 'browser.startup.couldRestoreSession.count'
         for managed in (False, True):

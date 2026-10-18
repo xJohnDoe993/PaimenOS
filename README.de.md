@@ -118,7 +118,7 @@ Steckt eine Kamera, SD-Karte oder ein USB-Stick, erscheint die Kachel **Kamera /
 
 ## Installation
 
-PaimenOS wird auf einem **eigenen Laptop für das Kind** installiert. Getestet wird vor allem auf einem Lenovo ThinkPad T450; jeder x86-64-Laptop mit Debian-Unterstützung sollte funktionieren.
+PaimenOS wird auf einem **eigenen Laptop für das Kind** installiert. Getestet wird vor allem auf einem Lenovo ThinkPad T450; jeder x86-64-Laptop mit Debian-Unterstützung sollte funktionieren. ARM (arm64, z. B. Raspberry Pi) erkennt `install.sh` automatisch und passt den Ablauf an, ist aber ungetestet.
 
 Es gibt zwei Wege:
 

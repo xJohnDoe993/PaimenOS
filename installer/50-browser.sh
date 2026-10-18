@@ -31,6 +31,9 @@ fi
 
 mkdir -p /etc/firefox/policies
 install_repo_file config/firefox/policies.json /etc/firefox/policies/policies.json
+# Autoconfig: Tastenkürzel für neue Tabs/Fenster in den Kinder-Browserfenstern entfernen.
+install_repo_file config/firefox/paimenos-autoconfig.js /usr/lib/firefox-esr/defaults/pref/paimenos-autoconfig.js
+install_repo_file config/firefox/paimenos.cfg /usr/lib/firefox-esr/paimenos.cfg
 
 webapp_icon_download() {
     local url="$1"

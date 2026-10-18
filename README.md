@@ -118,7 +118,7 @@ When a camera, SD card or USB stick is plugged in, the **Camera / Pictures / Vid
 
 ## Installation
 
-PaimenOS is installed on a **laptop dedicated to the child**. It is mainly tested on a Lenovo ThinkPad T450; any x86-64 laptop that Debian supports should work.
+PaimenOS is installed on a **laptop dedicated to the child**. It is mainly tested on a Lenovo ThinkPad T450; any x86-64 laptop that Debian supports should work. ARM (arm64, e.g. Raspberry Pi) is detected by `install.sh` and adjusted automatically, but untested.
 
 There are two ways:
 

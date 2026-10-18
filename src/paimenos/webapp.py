@@ -25,6 +25,8 @@ user_pref("browser.startup.couldRestoreSession.count", -1);
 user_pref("browser.sessionstore.resume_from_crash", false);
 user_pref("browser.sessionstore.resume_session_once", false);
 user_pref("browser.sessionstore.resuming_after_os_restart", false);
+// Nach hartem Beenden (Strom weg, Akku leer) nie den Dialog "Im Abgesicherten Modus öffnen?" zeigen.
+user_pref("toolkit.startup.max_resumed_crashes", -1);
 user_pref("browser.warnOnQuit", false);
 user_pref("browser.tabs.warnOnClose", false);
 user_pref("browser.tabs.warnOnCloseOtherTabs", false);
@@ -98,7 +100,7 @@ def read_text(path):
 LEGACY_PROXY = re.compile(r'^\s*user_pref\("network\.proxy\.[a-z_]+",.*\);\s*$', re.M)
 
 
-def prepare_profile(profile_dir, template, extra_preferences=''):
+def prepare_profile(profile_dir, template, extra_preferences='', context_menu=False):
     os.makedirs(profile_dir, exist_ok=True)
     user_path = os.path.join(profile_dir, 'user.js')
     current = read_text(template) if os.path.isfile(template) else read_text(user_path)
@@ -131,6 +133,9 @@ def prepare_profile(profile_dir, template, extra_preferences=''):
     style = (':root { --paimenos-back-label: ' + json.dumps(t('Zurück'), ensure_ascii=False)
              + '; --paimenos-forward-label: ' + json.dumps(t('Weiter'), ensure_ascii=False)
              + '; --paimenos-bar-top: ' + top + '; --paimenos-bar-bottom: ' + bottom + '; }\n' + style)
+    # Rechtsklick-Menü (Zurück, Speichern unter, Quelltext ...) verwirrt Kinder: für sie ausblenden.
+    if not context_menu:
+        style = '#contentAreaContextMenu { display: none !important; }\n' + style
     write_text(os.path.join(profile_dir, 'chrome', 'paimenos-webapp.css'), style)
 
 
