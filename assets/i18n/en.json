@@ -1566,5 +1566,14 @@
   "FEHLER: Architektur {value0} wird nicht unterstützt (amd64, arm64, armhf).": "ERROR: Architecture {value0} is not supported (amd64, arm64, armhf).",
   "ARM-Gerät erkannt ({value0}); ARM-Anpassungen werden angewendet.": "ARM device detected ({value0}); applying ARM adjustments.",
   "Hinweis: 32-Bit-ARM (armhf) ist ungetestet; 64-Bit-Debian (arm64) wird empfohlen.": "Note: 32-bit ARM (armhf) is untested; 64-bit Debian (arm64) is recommended.",
-  "Hinweis: Raspberry-Pi-OS-Anmeldekonfiguration {value0} wird deaktiviert.": "Note: Raspberry Pi OS login configuration {value0} is being disabled."
+  "Hinweis: Raspberry-Pi-OS-Anmeldekonfiguration {value0} wird deaktiviert.": "Note: Raspberry Pi OS login configuration {value0} is being disabled.",
+  "Ungültige Liste der Systemdateien.": "Invalid list of system files.",
+  "Ungültiger Pfad in der Liste der Systemdateien: ": "Invalid path in the list of system files: ",
+  "Quelldatei fehlt: ": "Source file missing: ",
+  "Systemdatei aktualisiert: ": "System file updated: ",
+  "Systemdatei nicht aktualisiert: ": "System file not updated: ",
+  "Systemdateien sind aktuell.": "System files are up to date.",
+  "Systemdateien konnten nicht abgeglichen werden: ": "System files could not be synchronised: ",
+  "Ungültige Einstellungen im Backup.": "Invalid settings in the backup.",
+  "Eltern-Einstellungen und Webapps (ohne PIN)": "Parent settings and web apps (without PIN)"
 }

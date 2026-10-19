@@ -19,7 +19,7 @@ class FamilyDnsConfigTests(unittest.TestCase):
         self.assertRegex(text, r'(?m)^FallbackDNS=$')
 
     def test_firefox_uses_a_locked_family_doh_provider_with_fallback(self):
-        doh = json.loads((ROOT / 'config/firefox/policies.json').read_text())['policies']['DNSOverHTTPS']
+        doh = json.loads((ROOT / 'data/system-config/firefox/policies.json').read_text())['policies']['DNSOverHTTPS']
         self.assertTrue(doh['Enabled'])
         self.assertTrue(doh['Locked'])
         self.assertTrue(doh['Fallback'])
@@ -27,7 +27,7 @@ class FamilyDnsConfigTests(unittest.TestCase):
                                            'https://family.cloudflare-dns.com/dns-query'})
 
     def test_cookie_banners_are_handled_by_ublock_lists_and_firefox(self):
-        policies = json.loads((ROOT / 'config/firefox/policies.json').read_text())['policies']
+        policies = json.loads((ROOT / 'data/system-config/firefox/policies.json').read_text())['policies']
         lists = policies['3rdparty']['Extensions']['uBlock0@raymondhill.net']['toOverwrite']['filterLists']
         self.assertIn('fanboy-cookiemonster', lists)
         self.assertIn('ublock-cookies-easylist', lists)
@@ -43,7 +43,7 @@ if __name__ == '__main__':
 
 class FirefoxPolicyHardeningTests(unittest.TestCase):
     def test_kids_cannot_open_local_files_or_store_logins(self):
-        policies = json.loads((ROOT / 'config/firefox/policies.json').read_text())['policies']
+        policies = json.loads((ROOT / 'data/system-config/firefox/policies.json').read_text())['policies']
         self.assertIn('file:///*', policies['WebsiteFilter']['Block'])
         for key in ('BlockAboutAddons', 'BlockAboutSupport', 'DisableAccounts', 'DisableFormHistory'):
             self.assertIs(policies[key], True)
@@ -52,15 +52,16 @@ class FirefoxPolicyHardeningTests(unittest.TestCase):
 
 
 class FirefoxAutoconfigTests(unittest.TestCase):
-    def test_autoconfig_and_cfg_are_installed_together(self):
-        pref = (ROOT / 'config/firefox/paimenos-autoconfig.js').read_text()
-        cfg = (ROOT / 'config/firefox/paimenos.cfg').read_text()
-        installer = (ROOT / 'installer/50-browser.sh').read_text()
+    def test_autoconfig_and_cfg_are_synced_together(self):
+        pref = (ROOT / 'data/system-config/firefox/paimenos-autoconfig.js').read_text()
+        cfg = (ROOT / 'data/system-config/firefox/paimenos.cfg').read_text()
+        files = json.loads((ROOT / 'data/system-config.json').read_text())['files']
         # Zeigt die Pref auf eine fehlende Datei, startet Firefox nur mit "Configuration Error".
         self.assertIn('pref("general.config.filename", "paimenos.cfg");', pref)
         self.assertTrue(cfg.startswith('//'))
-        for name in ('paimenos-autoconfig.js', 'paimenos.cfg'):
-            self.assertIn('config/firefox/' + name, installer)
+        pair = [entry for entry in files if entry['source'].startswith('firefox/paimenos')]
+        self.assertEqual([entry['source'] for entry in pair], ['firefox/paimenos.cfg', 'firefox/paimenos-autoconfig.js'])
+        self.assertEqual({entry['group'] for entry in pair}, {'autoconfig'})
 
     def test_parent_profile_keeps_its_shortcuts(self):
-        self.assertIn("'parent-area'", (ROOT / 'config/firefox/paimenos.cfg').read_text())
+        self.assertIn("'parent-area'", (ROOT / 'data/system-config/firefox/paimenos.cfg').read_text())

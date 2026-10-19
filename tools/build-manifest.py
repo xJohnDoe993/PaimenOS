@@ -9,11 +9,11 @@ groups = {
     'desktop': ['menu', 'menu_tiles', 'menu_camera', 'menu_support', 'speech', 'video', 'status_overlay', 'close_overlay', 'browser', 'lockscreen', 'timer', 'media', 'screen_guard', 'foreground', 'idle', 'power'],
     'controller': ['controller', 'controller_profiles', 'input_devices'],
     'network': ['wifi', 'bluetooth', 'network_status'],
-    'emulators': ['backups', 'emulators', 'emulator_video', 'emulator_session', 'savestates', 'emulator_install', 'emulator_catalog', 'emulator_service', 'flatpak_service', 'offline_complete'],
+    'emulators': ['backups', 'emulators', 'emulator_video', 'emulator_session', 'savestates', 'emulator_install', 'emulator_catalog', 'emulator_service', 'flatpak_service', 'offline_complete', 'system_config', 'settings_backup'],
     'backend': ['parent', 'parent_web', 'flatpak_store'],
     'updates': ['updates', 'release_source', 'update_service'],
     'cli': ['cli_osd_notify', 'cli_update_apps', 'cli_flatpak', 'cli_flatpak_menu', 'cli_emulator', 'cli_emulator_check'],
-    'tools': [], 'services': [],
+    'tools': [], 'services': [], 'system-config': [],
 }
 components = {key: {'files': ['src/paimenos/' + name + '.py' for name in names]} for key, names in groups.items()}
 components['shared']['files'] += ['run.py', 'assets/webapp.css', 'assets/i18n/en.json', 'data/default-pronunciations.json']
@@ -24,6 +24,7 @@ components['emulators']['files'] += sorted(str(p.relative_to(ROOT)) for p in (RO
 components['cli']['files'] += sorted(str(p.relative_to(ROOT)) for folder in ('bin', 'sbin') for p in (ROOT / folder).glob('*') if p.is_file())
 components['tools']['files'] += sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'tools').glob('*.py') if p.name not in {'check.py', 'build-manifest.py', 'build-release.py'})
 components['tools']['files'].append('data/update-packages.json')
+components['system-config']['files'] += ['data/system-config.json'] + sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'data/system-config').rglob('*') if p.is_file())
 components['tools']['files'] += sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'assets/plymouth/paimenos').glob('*') if p.is_file())
 components['services']['files'] += sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'systemd').rglob('*') if p.is_file())
 manifest = {'schema': 1, 'runtime_api': 3, 'version': (ROOT / 'VERSION').read_text().strip(), 'components': components}

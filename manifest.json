@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "runtime_api": 3,
-  "version": "0.74.0",
+  "version": "0.75.0",
   "components": {
     "shared": {
       "files": [
@@ -73,6 +73,8 @@
         "src/paimenos/emulator_service.py",
         "src/paimenos/flatpak_service.py",
         "src/paimenos/offline_complete.py",
+        "src/paimenos/system_config.py",
+        "src/paimenos/settings_backup.py",
         "data/emulator-catalog.json",
         "data/app-data-catalog.json",
         "data/libretro-info/COPYING",
@@ -244,6 +246,18 @@
         "systemd/user/paimenos-osd.service",
         "systemd/user/paimenos-session.target",
         "systemd/user/paimenos-timer.service"
+      ]
+    },
+    "system-config": {
+      "files": [
+        "data/system-config.json",
+        "data/system-config/firefox/paimenos-autoconfig.js",
+        "data/system-config/firefox/paimenos.cfg",
+        "data/system-config/firefox/policies.json",
+        "data/system-config/journald/10-paimenos.conf",
+        "data/system-config/polkit/49-kids-shutdown.rules",
+        "data/system-config/polkit/50-paimenos-removable-media.rules",
+        "data/system-config/xorg/40-paimenos-touchpad.conf"
       ]
     }
   }

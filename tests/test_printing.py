@@ -224,7 +224,7 @@ class FirefoxTests(unittest.TestCase):
                 self.assertEqual('user_pref("print.enabled", true);' in config, expected)
 
     def test_policy_no_longer_locks_printing_and_old_devices_are_migrated(self):
-        self.assertNotIn('PrintingEnabled', json.loads((ROOT / 'config/firefox/policies.json').read_text())['policies'])
+        self.assertNotIn('PrintingEnabled', json.loads((ROOT / 'data/system-config/firefox/policies.json').read_text())['policies'])
         spec = importlib.util.spec_from_file_location('paimenos_deploy', ROOT / 'tools/deploy.py')
         deploy = importlib.util.module_from_spec(spec); spec.loader.exec_module(deploy)
         with tempfile.TemporaryDirectory() as folder:

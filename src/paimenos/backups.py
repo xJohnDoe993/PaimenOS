@@ -17,7 +17,7 @@ import threading
 
 from paimenos.i18n import t
 from paimenos.paths import DATA_DIR, USER_DATA_DIR, STATE_DIR
-from paimenos import media, parent
+from paimenos import media, parent, settings_backup
 from paimenos.emulator_catalog import CATALOG
 from paimenos.state import atomic_json
 
@@ -31,7 +31,10 @@ USER_FOLDERS = {'documents': ('DOCUMENTS', 'Dokumente', 'Documents'), 'pictures'
 GROUPS = {'roms': ('roms',), 'saves': ('saves', 'states', 'legacy_states'), 'bios': ('bios',),
           **{'app-' + app: tuple(f'app.{app}.{loc}' for loc in info['locations'])
              for app, info in APP_CATALOG.items()},
-          'files': tuple('files.' + kind for kind in USER_FOLDERS)}
+          'files': tuple('files.' + kind for kind in USER_FOLDERS),
+          'settings': ('settings',)}
+# Kein Ordner auf dem Gerät: wird als Momentaufnahme gesichert und nach Prüfung übernommen (settings_backup).
+SETTINGS_KEY = 'settings'
 # Top-level folders that are neither backed up nor kept while staging (Flatpak caches).
 EXCLUDES = {f'app.{app}.{loc}': frozenset(spec.get('exclude', ()))
             for app, info in APP_CATALOG.items() for loc, spec in info['locations'].items()}
@@ -73,13 +76,14 @@ def targets():
 def labels():
     return {'roms': t('ROMs und Menüeinträge'), 'saves': t('Spielstände und Savestates'), 'bios': t('BIOS-Dateien'),
             **{'app-' + app: info['title'] for app, info in APP_CATALOG.items()},
-            'files': t('Eigene Dateien (Dokumente, Bilder, Musik, Videos)')}
+            'files': t('Eigene Dateien (Dokumente, Bilder, Musik, Videos)'),
+            'settings': t('Eltern-Einstellungen und Webapps (ohne PIN)')}
 
 
 def offered():
     """Emulator groups always; app and personal groups only when local data exists."""
     dests = targets()
-    return [g for g in GROUPS if g in ('roms', 'saves', 'bios') or any(dests[k].is_dir() for k in GROUPS[g])]
+    return [g for g in GROUPS if g in ('roms', 'saves', 'bios', 'settings') or any(dests[k].is_dir() for k in GROUPS[g])]
 
 
 def check_running(groups):
@@ -298,14 +302,15 @@ def game_entries(items):
 
 
 def create(device, groups, report, skipped=None):
-    keys = [key for group in groups for key in GROUPS[group]]
+    keys = [key for group in groups for key in GROUPS[group] if key != SETTINGS_KEY]
     check_separate(keys)
     check_running(groups)
     for key in keys:
         safe_target(targets()[key])
     files = [(key, root, file) for key in keys
              for root in [targets()[key]] for file in regular_files(root, key, skipped)]
-    total = sum(file.stat().st_size for _, _, file in files)
+    blob = settings_backup.snapshot() if SETTINGS_KEY in groups else b''
+    total = sum(file.stat().st_size for _, _, file in files) + len(blob)
     report(0, total)
     info = {'format': 'PaimenOS-backup-1', 'date': datetime.now(timezone.utc).isoformat(),
             'groups': groups, 'files': [], 'games': game_entries(parent.read_apps()) if 'roms' in groups else []}
@@ -335,6 +340,14 @@ def create(device, groups, report, skipped=None):
                     raise ValueError(t('Dateien wurden während des Backups verändert.'))
                 entry['sha256'] = digest.hexdigest()
                 info['files'].append(entry)
+            if blob:
+                chunks = []
+                for start in range(0, len(blob), CHUNK):
+                    chunks.append(f'{count:08d}.part')
+                    write_file(out, chunks[-1], blob[start:start + CHUNK])
+                    count += 1
+                info['files'].append({'root': SETTINGS_KEY, 'path': 'settings.json', 'size': len(blob),
+                                      'chunks': chunks, 'sha256': hashlib.sha256(blob).hexdigest()})
             encoded = json.dumps(info, ensure_ascii=False).encode()
             if len(encoded) > MANIFEST_LIMIT:
                 raise ValueError(t('Zu viele Dateien für ein Backup.'))
@@ -401,9 +414,23 @@ def restore(device, backup_id, groups, report):
         # App/personal locations only when the backup has files there: an empty ~/.luanti
         # next to ~/.minetest would otherwise change where Luanti looks for worlds.
         present = {f['root'] for f in info['files']}
-        keys = [key for group in groups for key in GROUPS[group] if not lenient(key) or key in present]
+        keys = [key for group in groups for key in GROUPS[group]
+                if key != SETTINGS_KEY and (not lenient(key) or key in present)]
+        # Einstellungen zuerst vollständig prüfen: bei einem Fehler bleibt das Gerät unverändert.
+        plan = None
+        if SETTINGS_KEY in groups:
+            entry = next((f for f in info['files'] if f['root'] == SETTINGS_KEY), None)
+            if entry is None or entry['size'] > settings_backup.LIMIT:
+                raise ValueError(t('Ungültige Einstellungen im Backup.'))
+            raw = b''.join(read_file(backup, chunk, CHUNK) for chunk in entry['chunks'])
+            if len(raw) != entry['size'] or hashlib.sha256(raw).hexdigest() != entry['sha256']:
+                raise ValueError(t('Prüfsumme oder Größe des Backups stimmt nicht.'))
+            plan = settings_backup.parse(raw)
         if 'roms' in groups:
             keys.append('apps')
+        if not keys:
+            settings_backup.apply(plan)
+            return
         check_separate(keys)
         check_running(groups)
         token = secrets.token_hex(8)
@@ -494,6 +521,8 @@ def restore(device, backup_id, groups, report):
             else:
                 for stage in stages.values():
                     remove(stage)
+        if plan:
+            settings_backup.apply(plan)
 
 
 def job_status():

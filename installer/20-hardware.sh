@@ -137,8 +137,8 @@ fi
 # Wöchentliches TRIM über die Debian-Unit, ohne permanente discard-Mountoption.
 systemctl enable fstrim.timer
 mkdir -p /etc/systemd/journald.conf.d /etc/X11/xorg.conf.d /usr/local/share/paimenos
-install_repo_file config/journald/10-paimenos.conf /etc/systemd/journald.conf.d/10-paimenos.conf
-install_repo_file config/xorg/40-paimenos-touchpad.conf /etc/X11/xorg.conf.d/40-paimenos-touchpad.conf
+# Firefox-Richtlinien/Autoconfig, polkit, journald und Touchpad aus data/system-config (auch bei Updates abgeglichen).
+/usr/bin/python3 -I /usr/local/lib/paimenos/current/run.py system_config
 install_repo_file docs/laptop-setup.txt /usr/local/share/paimenos/laptop-setup.txt
 
 # Verifizierung kritischer Python-Pakete

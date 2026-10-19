@@ -19,6 +19,20 @@ Boot-Systemkonfiguration nicht selbst. Die einmalige Aktivierung und die
 Rückkehr zu einem bisherigen Theme stehen unter
 [Plymouth](installation.md#paimenos-plymouth-theme).
 
+## Systemdateien bei Updates
+
+Ein Code-Update ersetzt nur `/usr/local/lib/paimenos`. Einige Dateien liegen aber im System: die Firefox-Richtlinien
+(`/etc/firefox/policies/policies.json`), die Firefox-Autoconfig (`/usr/lib/firefox-esr/paimenos.cfg` und
+`defaults/pref/paimenos-autoconfig.js`), die polkit-Regeln, die journald-Begrenzung und die Touchpad-Konfiguration. Sie
+liegen im Release unter `data/system-config/`, die Zuordnung steht in `data/system-config.json`.
+
+`paimenos-emulators.service` (läuft als root und wird bei jedem Update neu gestartet) gleicht sie beim Start ab
+(`paimenos.system_config`). Der Abgleich funktioniert auch, wenn ein Update vom bisher installierten Updater eingespielt
+wurde. Nur die gelisteten Dateien werden überschrieben (Modus 0644, root), alles andere bleibt unberührt. Fehlt Firefox ESR,
+werden die Autoconfig-Dateien übersprungen; schlägt die erste Datei der Autoconfig fehl, wird auch die zweite nicht
+geschrieben, weil Firefox sonst mit „Configuration Error“ startet. Manuell: `sudo python3 -I /usr/local/lib/paimenos/current/run.py system_config`.
+Die Installation ruft denselben Abgleich auf. Eigene Änderungen an diesen Dateien gehen beim nächsten Dienststart verloren.
+
 ## GitHub als Update-Quelle
 
 Die Quelle ist das [PaimenOS-Repo](https://github.com/xJohnDoe993/PaimenOS/releases). Der frühere Name `xJohnDoe993/LaurinOS` wird bei Release-Dateien als Alias akzeptiert. `paimenos-updates.service` prüft beim Start und alle sechs Stunden das neueste veröffentlichte stabile Release. Entwürfe und Pre-Releases werden nicht angeboten. Tags müssen `vMAJOR.MINOR.PATCH` heißen, zum Beispiel `v0.65.0`; `VERSION` und Manifest enthalten `0.65.0`. Die Prüfung vergleicht Versionsnummern numerisch und installiert nichts automatisch.

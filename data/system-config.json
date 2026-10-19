@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "files": [
+    {"source": "firefox/paimenos.cfg", "target": "/usr/lib/firefox-esr/paimenos.cfg", "requires": "/usr/lib/firefox-esr", "group": "autoconfig"},
+    {"source": "firefox/paimenos-autoconfig.js", "target": "/usr/lib/firefox-esr/defaults/pref/paimenos-autoconfig.js", "requires": "/usr/lib/firefox-esr", "group": "autoconfig"},
+    {"source": "firefox/policies.json", "target": "/etc/firefox/policies/policies.json"},
+    {"source": "polkit/49-kids-shutdown.rules", "target": "/etc/polkit-1/rules.d/49-kids-shutdown.rules"},
+    {"source": "polkit/50-paimenos-removable-media.rules", "target": "/etc/polkit-1/rules.d/50-paimenos-removable-media.rules"},
+    {"source": "journald/10-paimenos.conf", "target": "/etc/systemd/journald.conf.d/10-paimenos.conf"},
+    {"source": "xorg/40-paimenos-touchpad.conf", "target": "/etc/X11/xorg.conf.d/40-paimenos-touchpad.conf"}
+  ]
+}
