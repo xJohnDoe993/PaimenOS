@@ -13,6 +13,7 @@ echo "$(paimenos_text 'Eltern-Webbackend auf Port 80 einrichten ...')"
 
 install_repo_file systemd/system/paimenos-emulators.service /etc/systemd/system/paimenos-emulators.service
 install_repo_file systemd/system/paimenos-updates.service /etc/systemd/system/paimenos-updates.service
+install_repo_file systemd/system/paimenos-guard.service /etc/systemd/system/paimenos-guard.service
 
 install_repo_file systemd/system/paimenos-packages.service /etc/systemd/system/paimenos-packages.service
 
@@ -30,6 +31,7 @@ systemctl daemon-reload
 systemctl enable paimenos-wifi.service
 systemctl enable paimenos-emulators.service
 systemctl enable paimenos-updates.service
+systemctl enable paimenos-guard.service
 systemctl enable paimenos-bluetooth.service
 systemctl enable paimenos-power.service
 systemctl enable paimenos-print.service
@@ -60,7 +62,7 @@ fi
 # Drucken ist optional: Ein fehlender Druckdienst bricht das Setup nicht ab.
 systemctl enable --now cups.service >/dev/null 2>&1 || true
 systemctl restart paimenos-print.service || echo "$(paimenos_text 'Hinweis: Druckverwaltung nicht gestartet. Siehe systemctl status paimenos-print.service')" >&2
-systemctl restart paimenos-parent-web.service paimenos-updates.service
+systemctl restart paimenos-guard.service paimenos-parent-web.service paimenos-updates.service
 sleep 2
 if ! systemctl is-active --quiet paimenos-parent-web.service; then
     echo "$(paimenos_text 'FEHLER: Eltern-Webbackend ist nicht gestartet. Siehe systemctl status paimenos-parent-web.service')" >&2

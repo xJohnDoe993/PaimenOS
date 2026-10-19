@@ -1,0 +1,10 @@
+#!/bin/bash
+# Eltern-PIN neu setzen (Administrator-Konsole). Die PIN lässt sich nicht mehr auslesen.
+#   sudo paimenos-reset-pin
+# Vor einem Zurückrollen auf eine Version vor 0.76: sudo paimenos-reset-pin --export-legacy
+set -euo pipefail
+RUN=/usr/local/lib/paimenos/current/run.py
+if [[ "${1:-}" == --export-legacy ]]; then
+    exec /usr/bin/python3 -I "$RUN" guard --export-legacy
+fi
+exec /usr/bin/python3 -I "$RUN" guard --set-pin

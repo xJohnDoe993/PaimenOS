@@ -3,7 +3,9 @@ from paimenos.i18n import t, setup_qt
 from paimenos.paths import CONFIG_DIR
 import sys, os, json, subprocess
 from datetime import date
-from paimenos.state import read_settings, update_settings, remaining_seconds, in_usage_window
+from paimenos.state import read_settings, update_settings, run_op, guard_installed, remaining_seconds, in_usage_window
+from paimenos.guard_client import GuardUnavailable
+from paimenos.guard_store import GuardError
 from paimenos.foreground import ForegroundGuard
 from PyQt5.QtCore import QSize, Qt, QTimer
 from PyQt5.QtGui import QFont, QIcon, QPixmap
@@ -159,41 +161,65 @@ class LockScreen(QWidget):
         try:
             pin, ok_pin = QInputDialog.getText(
                 self, t('🔒 Eltern-PIN'), t('Bitte Eltern-PIN eingeben:'), QLineEdit.Password)
-            if ok_pin and pin == load_settings()["pin"]:
-                update_settings({"window_override_date": str(date.today())})
+            if ok_pin and self.pin_action('unlock_today', pin, lambda data: data.update(window_override_date=str(date.today()))):
                 QMessageBox.information(self, t('Erfolg'), t('Das Gerät ist für heute freigeschaltet.'))
                 QApplication.quit()
                 return
-            if ok_pin:
-                QMessageBox.warning(self, t('Falsch'), t('Falscher PIN!'))
         except (OSError, ValueError, KeyError, TypeError) as exc:
             QMessageBox.warning(self, t('Datenfehler'), str(exc))
         finally:
             self.refresh_timer.start(1000)
 
+    def pin_action(self, op, pin, legacy_change, **args):
+        """PIN-geprüfte Änderung. Mit Guard prüft dieser die PIN (mit Sperrzeit); ohne Guard wie bisher die Datei."""
+        if not guard_installed():
+            if pin != load_settings()["pin"]:
+                QMessageBox.warning(self, t('Falsch'), t('Falscher PIN!'))
+                return False
+            self.settings = update_settings(legacy_change)
+            return True
+        try:
+            self.settings = run_op(op, pin=pin, **args)
+            return True
+        except GuardError as exc:
+            QMessageBox.warning(self, t('Falsch'), str(exc) if exc.code == 'locked' else t('Falscher PIN!'))
+        except GuardUnavailable:
+            QMessageBox.warning(self, t('Datenfehler'), t('Der PaimenOS-Guard ist nicht erreichbar. Bitte später erneut versuchen.'))
+        return False
+
+    def verify_pin(self, pin):
+        if not guard_installed():
+            if pin != load_settings()["pin"]:
+                QMessageBox.warning(self, t('Falsch'), t('Falscher PIN!'))
+                return False
+            return True
+        try:
+            run_op('verify', pin=pin)
+            return True
+        except GuardError as exc:
+            QMessageBox.warning(self, t('Falsch'), str(exc) if exc.code == 'locked' else t('Falscher PIN!'))
+        except GuardUnavailable:
+            QMessageBox.warning(self, t('Datenfehler'), t('Der PaimenOS-Guard ist nicht erreichbar. Bitte später erneut versuchen.'))
+        return False
+
     def request_bonus(self):
         pin, ok_pin = QInputDialog.getText(
             self, t('🔒 Eltern-PIN'), t('Bitte Eltern-PIN eingeben:'), QLineEdit.Password
         )
-
-        self.settings = load_settings()
-        correct_pin = self.settings["pin"]
-
-        if ok_pin and pin == correct_pin:
-            minutes, ok_time = QInputDialog.getInt(
-                self, t('⏱ Zeit hinzufügen'), t('Wie viele Minuten möchtest du hinzufügen?'), 15, 5, 180, 5
-            )
-            if ok_time and minutes > 0:
-                def add_bonus(data):
-                    required = data["today_used_seconds"] + minutes * 60
-                    data["bonus_minutes"] = max(0, (required + 59) // 60 - data["daily_limit_minutes"])
-                self.settings = update_settings(add_bonus)
-
-                QMessageBox.information(self, t('Erfolg'), t('Es wurden {value0} Minuten für heute hinzugefügt!', value0=minutes))
-                QApplication.quit()
-                return
-        elif ok_pin:
-            QMessageBox.warning(self, t('Falsch'), t('Falscher PIN!'))
+        # Falsche PIN sofort melden, nicht erst nach der Minutenauswahl.
+        if not ok_pin or not self.verify_pin(pin):
+            return
+        minutes, ok_time = QInputDialog.getInt(
+            self, t('⏱ Zeit hinzufügen'), t('Wie viele Minuten möchtest du hinzufügen?'), 15, 5, 180, 5
+        )
+        if not ok_time or minutes <= 0:
+            return
+        def add_bonus(data):
+            required = data["today_used_seconds"] + minutes * 60
+            data["bonus_minutes"] = max(0, (required + 59) // 60 - data["daily_limit_minutes"])
+        if self.pin_action('bonus_until', pin, add_bonus, minutes=minutes):
+            QMessageBox.information(self, t('Erfolg'), t('Es wurden {value0} Minuten für heute hinzugefügt!', value0=minutes))
+            QApplication.quit()
 
     def shutdown(self):
         answer = QMessageBox.question(

@@ -408,6 +408,8 @@ def sync_system_files():
     try:
         from paimenos import system_config
         changed, failed = system_config.sync()
+        for unit in system_config.ensure_units():
+            print(t('Dienst aktiviert: ') + unit, flush=True)
         for target in changed:
             print(t('Systemdatei aktualisiert: ') + target, flush=True)
         for target, reason in failed:

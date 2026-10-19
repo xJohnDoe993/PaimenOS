@@ -194,7 +194,7 @@ def install_launchers(release, previous=None):
                     if target.is_symlink() and target.readlink() == expected:
                         target.unlink()
 
-OPTIONAL_SYSTEM_UNITS = ('paimenos-updates.service', 'paimenos-power.service', 'paimenos-print.service')
+OPTIONAL_SYSTEM_UNITS = ('paimenos-updates.service', 'paimenos-power.service', 'paimenos-print.service', 'paimenos-guard.service')
 USER_UNITS = ('paimenos-menu.service', 'paimenos-timer.service', 'paimenos-media.service',
               'paimenos-osd.service', 'paimenos-cursor.service', 'paimenos-idle.service')
 
