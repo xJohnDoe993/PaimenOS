@@ -7,7 +7,8 @@
 {% if not devices %}<p>{{ t('Kein eingebundenes USB-Medium erkannt. Bitte anschließen und erneut einlesen.') }}</p>{% endif %}</section>
 {% if devices %}<section class="panel"><h2>{{ t('Backup erstellen') }}</h2><form method="post"><input type="hidden" name="action" value="create"><input type="hidden" name="device" value="{{ selected }}">
 <h3>{{ t('Emulatoren') }}</h3>{% for key in offered if key in ('roms', 'saves', 'bios') %}<label class="check"><input type="checkbox" name="groups" value="{{ key }}" checked>{{ labels[key] }}</label>{% endfor %}
-{% set apps = offered|reject('in', ['roms', 'saves', 'bios', 'files'])|list %}{% if apps %}<h3>{{ t('Spielstände und Einstellungen von Apps') }}</h3>{% for key in apps %}<label class="check"><input type="checkbox" name="groups" value="{{ key }}" checked>{{ labels[key] }}</label>{% endfor %}{% endif %}
+{% set apps = offered|reject('in', ['roms', 'saves', 'bios', 'files', 'settings'])|list %}{% if apps %}<h3>{{ t('Spielstände und Einstellungen von Apps') }}</h3>{% for key in apps %}<label class="check"><input type="checkbox" name="groups" value="{{ key }}" checked>{{ labels[key] }}</label>{% endfor %}{% endif %}
+<h3>{{ t('Einstellungen') }}</h3><label class="check"><input type="checkbox" name="groups" value="settings" checked>{{ labels['settings'] }}</label>
 {% if 'files' in offered %}<h3>{{ t('Eigene Dateien') }}</h3><label class="check"><input type="checkbox" name="groups" value="files">{{ labels['files'] }}</label>{% endif %}
 <button data-backup-action {{ 'disabled' if job.status=='running' else '' }}>{{ t('Auf USB sichern') }}</button></form></section>{% endif %}
 <section class="panel"><h2>{{ t('Erkannte Backups') }}</h2><p>{{ t('Beim Wiederherstellen werden gleichnamige Dateien ersetzt; zusätzliche vorhandene Dateien bleiben erhalten. Die Prüfsummen werden vor der Übernahme geprüft. Emulatoren und Apps müssen auf diesem Gerät separat installiert sein.') }}</p>

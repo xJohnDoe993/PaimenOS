@@ -71,7 +71,7 @@ class AppBackupTests(unittest.TestCase):
         self.assertEqual(b.user_folder('music'), self.home / 'Musik')
         self.assertEqual(b.user_folder('documents'), self.home / 'Documents')
         photo = self.put('Meine Bilder/kamera/foto.jpg', b'jpg')
-        self.assertEqual(b.offered(), ['roms', 'saves', 'bios', 'files'])
+        self.assertEqual(b.offered(), ['roms', 'saves', 'bios', 'files', 'settings'])
         name = b.create('usb', ['files'], self.progress)
         photo.unlink()
         b.restore('usb', name, ['files'], self.progress)

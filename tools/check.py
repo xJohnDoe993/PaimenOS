@@ -26,7 +26,7 @@ for path in python_files:
 shell_files = [*ROOT.glob('*.sh'), *ROOT.joinpath('installer').glob('*.sh'), *ROOT.joinpath('iso').glob('*.sh'), *ROOT.joinpath('tests/integration').glob('*.sh'), *ROOT.joinpath('bin').glob('*'), *ROOT.joinpath('sbin').glob('*'), ROOT / 'config/openbox/autostart']
 for path in shell_files:
     subprocess.run(['bash', '-n', str(path)], check=True)
-for path in [*ROOT.joinpath('data').glob('*.json'), ROOT / 'config/firefox/policies.json']:
+for path in [*ROOT.joinpath('data').glob('*.json'), ROOT / 'data/system-config/firefox/policies.json']:
     json.loads(path.read_text())
 for path in [ROOT / 'config/openbox/rc.xml', *ROOT.joinpath('assets/icons').glob('*.svg')]:
     ET.parse(path)

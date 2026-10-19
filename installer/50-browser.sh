@@ -4,12 +4,7 @@
 # ---------------------------------------------------------------------------
 echo "$(paimenos_text 'System-Rechte, Family-DNS & Webapp-Logos cachen ...')"
 
-mkdir -p /etc/polkit-1/rules.d
-install_repo_file config/polkit/49-kids-shutdown.rules /etc/polkit-1/rules.d/49-kids-shutdown.rules
-chown root:root /etc/polkit-1/rules.d/49-kids-shutdown.rules
-chmod 0644 /etc/polkit-1/rules.d/49-kids-shutdown.rules
-install_repo_file config/polkit/50-paimenos-removable-media.rules /etc/polkit-1/rules.d/50-paimenos-removable-media.rules
-chmod 0644 /etc/polkit-1/rules.d/50-paimenos-removable-media.rules
+# polkit-Regeln, Firefox-Richtlinien und Autoconfig installiert 20-hardware.sh über system_config.
 
 # Firefox user.js Profil
 FIREFOX_DIR="${KIDS_HOME}/.mozilla/firefox"
@@ -29,11 +24,6 @@ fi
 /usr/bin/python3 "${REPO_DIR}/tools/configure-dns.py" family \
     "${REPO_DIR}/config/resolved/paimenos-family-dns.conf"
 
-mkdir -p /etc/firefox/policies
-install_repo_file config/firefox/policies.json /etc/firefox/policies/policies.json
-# Autoconfig: Tastenkürzel für neue Tabs/Fenster in den Kinder-Browserfenstern entfernen.
-install_repo_file config/firefox/paimenos-autoconfig.js /usr/lib/firefox-esr/defaults/pref/paimenos-autoconfig.js
-install_repo_file config/firefox/paimenos.cfg /usr/lib/firefox-esr/paimenos.cfg
 
 webapp_icon_download() {
     local url="$1"

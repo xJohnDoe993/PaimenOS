@@ -402,7 +402,21 @@ def allowed_peer(connection, kids_uid):
     return uid in (0, kids_uid)
 
 
+def sync_system_files():
+    # Dieser Dienst läuft als root und wird bei jedem Update neu gestartet: Systemdateien wie die Firefox-Richtlinien
+    # kommen so auch über Backend-Updates an. Ein Fehler darf den Dienst nie am Start hindern.
+    try:
+        from paimenos import system_config
+        changed, failed = system_config.sync()
+        for target in changed:
+            print(t('Systemdatei aktualisiert: ') + target, flush=True)
+        for target, reason in failed:
+            print(t('Systemdatei nicht aktualisiert: ') + target + ' (' + reason + ')', file=sys.stderr, flush=True)
+    except Exception as exc:
+        print(t('Systemdateien konnten nicht abgeglichen werden: ') + str(exc), file=sys.stderr, flush=True)
+
 def serve():
+    sync_system_files()
     from paimenos.flatpak_service import FlatpakJobs
     from paimenos.offline_complete import CompleteJobs
     kids_uid = pwd.getpwnam('kids').pw_uid

@@ -3,7 +3,7 @@
 1. USB-Medium anschließen und im Kindermenü einbinden lassen. Es wird nicht formatiert.
 2. Alle Emulatoren und Apps beenden. Im Elternbackend **USB-Backups** öffnen und das Medium auswählen.
 3. ROMs mit Menüeinträgen, Spielstände/Savestates, BIOS-Dateien, Spielstände und
-   Einstellungen einzelner Apps und/oder eigene Dateien auswählen.
+   Einstellungen einzelner Apps, die Eltern-Einstellungen und/oder eigene Dateien auswählen.
 4. **Auf USB sichern** starten und den Abschluss abwarten. Danach im Kindermenü sicher auswerfen.
 
 Erkannte vollständige Backups werden nach Auswahl des Mediums auf derselben Seite
@@ -11,8 +11,20 @@ angeboten. Für die Wiederherstellung Inhalte auswählen und das Ersetzen besteh
 Dateien bestätigen. Zusätzliche lokale Dateien bleiben erhalten. ROM-Menüeinträge
 werden hinzugefügt bzw. anhand ihrer ID aktualisiert; Startbefehle werden lokal neu
 aufgebaut. Emulatoren/Core-Systemdateien und Apps sind auf dem Zielgerät separat zu
-installieren. Eltern-PIN, Browserprofile/Web-Apps, Bildschirmzeit und sonstige
-PaimenOS-Einstellungen sind nicht Teil dieser Backup-Version. Backups sind unverschlüsselt.
+installieren. Backups sind unverschlüsselt.
+
+## Eltern-Einstellungen und Webapps
+
+Die Auswahl **Eltern-Einstellungen und Webapps (ohne PIN)** sichert Tageslimit, Nutzungszeitraum, Hintergrundfarbe,
+Kategorie-Reiter, Vorlesen, gesperrte Apps und die selbst angelegten oder geänderten Webapps (Name, Adresse, Kategorie,
+Aussprache). **Nicht** enthalten sind die Eltern-PIN, Bonuszeit, verbrauchte Zeit und die Tagesfreigabe: Die PIN bleibt
+auf dem Zielgerät, wie sie ist. Auch Webapp-Symbole, Browserprofile (Anmeldungen) und Apps mit Startbefehl werden nicht
+gesichert, weil deren Startbefehl als Kind läuft.
+
+Beim Wiederherstellen wird der gesamte Inhalt zuerst geprüft (Prüfsumme, Format, nur `http`/`https`-Adressen, gültige
+Werte). Schlägt etwas fehl, bleibt das Gerät unverändert. Webapps mit bekannter ID werden aktualisiert, neue werden
+angelegt; trägt eine ID ein anderes Programm, wird sie übersprungen. Gesperrte Apps werden nur übernommen, wenn es sie auf
+dem Gerät gibt.
 
 ## Format und Verhalten
 
