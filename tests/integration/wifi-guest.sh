@@ -4,7 +4,22 @@ set -euo pipefail
 [[ -f /etc/paimenos-integration-vm ]] || { echo 'Disposable test VM required.' >&2; exit 1; }
 export DEBIAN_FRONTEND=noninteractive
 phase=$1
-trap 'code=$?; echo "Guest test failed ($phase), line $LINENO" >&2; ip -br address; ip route; journalctl -b --no-pager -n 80 -u paimenos-test-ap -u paimenos-wifi-migration -u NetworkManager -u paimenos-packages -u paimenos-parent-web; exit "$code"' ERR
+dns_diagnostics() {
+    echo '=== DNS failure diagnostics ==='
+    ls -l /etc/resolv.conf
+    cat /etc/resolv.conf
+    cat /etc/nsswitch.conf
+    resolvectl status || true
+    cat /etc/systemd/resolved.conf.d/paimenos-install-dns.conf 2>/dev/null || true
+    cat /var/lib/paimenos/install-dns.json 2>/dev/null || true
+    echo '=== DNS state changes during installation ==='
+    cat /root/dns-watch.log 2>/dev/null || true
+    journalctl -b --no-pager -u systemd-resolved -u systemd-networkd -n 100 || true
+    echo '=== Fresh lookup ==='
+    getent ahostsv4 deb.debian.org || true
+    resolvectl query -4 deb.debian.org || true
+}
+trap 'code=$?; echo "Guest test failed ($phase), line $LINENO" >&2; dns_diagnostics; ip -br address; ip route; journalctl -b --no-pager -n 80 -u paimenos-test-ap -u paimenos-wifi-migration -u NetworkManager -u paimenos-packages -u paimenos-parent-web; exit "$code"' ERR
 wifi_only() {
     ip route del default dev ens3 || true
     ip -6 route del default dev ens3 || true
@@ -56,6 +71,18 @@ CONF
     printf 'nameserver 192.168.42.1\n' > /etc/resolv.conf
     ip route get 1.1.1.1 | grep -q 'dev wlan0'
     getent ahostsv4 deb.debian.org
+    (
+        previous=''
+        while true; do
+            current=$(ls -l /etc/resolv.conf; cat /etc/resolv.conf; resolvectl dns 2>/dev/null || true)
+            if [[ "$current" != "$previous" ]]; then
+                date -Ins
+                printf '%s\n' "$current"
+                previous=$current
+            fi
+            sleep 2
+        done
+    ) >/root/dns-watch.log 2>&1 &
     cp /etc/network/interfaces /root/interfaces.before
     # Interrupted installation, then the same standard --resume path.
     cp -a /source /root/PaimenOS
