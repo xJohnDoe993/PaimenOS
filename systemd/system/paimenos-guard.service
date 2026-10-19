@@ -1,0 +1,32 @@
+[Unit]
+Description=PaimenOS Guard (Eltern-PIN und Einschränkungen)
+After=local-fs.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/usr/local/lib/paimenos/current
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 -I /usr/local/lib/paimenos/current/run.py guard --serve
+Restart=always
+RestartSec=2
+# /run/paimenos-guard ist für alle durchsuchbar; der Socket selbst gehört root:kids (0660).
+RuntimeDirectory=paimenos-guard
+RuntimeDirectoryMode=0755
+StateDirectory=paimenos/guard
+StateDirectoryMode=0700
+NoNewPrivileges=true
+ProtectSystem=strict
+# Nur für die einmalige Übernahme und das späte Entfernen der alten PIN-Datei von kids.
+ProtectHome=false
+ReadWritePaths=/var/lib/paimenos /home/kids/.config/paimenos
+InaccessiblePaths=-/home/kids/.local -/home/kids/.mozilla
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

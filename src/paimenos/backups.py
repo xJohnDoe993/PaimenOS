@@ -17,7 +17,7 @@ import threading
 
 from paimenos.i18n import t
 from paimenos.paths import DATA_DIR, USER_DATA_DIR, STATE_DIR
-from paimenos import media, parent, settings_backup
+from paimenos import guard_client, media, parent, settings_backup
 from paimenos.emulator_catalog import CATALOG
 from paimenos.state import atomic_json
 
@@ -530,7 +530,7 @@ def job_status():
         return dict(JOB, recovery_needed=JOURNAL.exists())
 
 
-def start(action, device, groups, backup_id=''):
+def start(action, device, groups, backup_id='', token=None):
     if action not in ('create', 'restore', 'recover') or (action != 'recover' and
             (not groups or len(groups) != len(set(groups)) or any(g not in GROUPS for g in groups))):
         raise ValueError(t('Bitte Backup-Inhalte auswählen.'))
@@ -543,7 +543,7 @@ def start(action, device, groups, backup_id=''):
             JOB.update(done=done, total=total)
     def worker():
         try:
-            with data_lock(True), parent.app_transaction():
+            with data_lock(True), parent.app_transaction(), guard_client.use_token(token):
                 recover()
                 skipped = []
                 if action == 'create':

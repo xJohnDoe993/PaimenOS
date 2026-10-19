@@ -8,6 +8,7 @@ from paimenos.i18n import t
 import json
 import os
 from pathlib import Path
+import subprocess
 import sys
 
 from paimenos.paths import DATA_DIR
@@ -67,6 +68,20 @@ def sync(list_path=LIST, sources=SOURCES, root=Path('/')):
             if group:
                 broken_groups.add(group)
     return changed, failed
+
+
+def ensure_units(units=('paimenos-guard.service',), run=subprocess.run, unit_dir=Path('/etc/systemd/system')):
+    """Neue Systemdienste aktivieren. Der bisherige Updater kopiert Unit-Dateien nur, aktiviert aber keine neuen."""
+    started = []
+    for unit in units:
+        if not (unit_dir / unit).is_file():
+            continue
+        enabled = run(['systemctl', 'is-enabled', '--quiet', unit], capture_output=True, check=False).returncode == 0
+        active = run(['systemctl', 'is-active', '--quiet', unit], capture_output=True, check=False).returncode == 0
+        if not (enabled and active):
+            run(['systemctl', 'enable', '--now', '--no-block', unit], capture_output=True, check=False)
+            started.append(unit)
+    return started
 
 
 def main():

@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "runtime_api": 3,
-  "version": "0.75.0",
+  "version": "0.76.0",
   "components": {
     "shared": {
       "files": [
@@ -20,6 +20,8 @@
         "src/paimenos/hardware_profile.py",
         "src/paimenos/pronunciation.py",
         "src/paimenos/printing.py",
+        "src/paimenos/guard_store.py",
+        "src/paimenos/guard_client.py",
         "run.py",
         "assets/webapp.css",
         "assets/i18n/en.json",
@@ -123,7 +125,8 @@
       "files": [
         "src/paimenos/updates.py",
         "src/paimenos/release_source.py",
-        "src/paimenos/update_service.py"
+        "src/paimenos/update_service.py",
+        "src/paimenos/guard.py"
       ]
     },
     "cli": {
@@ -145,6 +148,7 @@
         "bin/paimenos-volume-mute",
         "bin/paimenos-volume-up",
         "sbin/paimenos-hardware-profile",
+        "sbin/paimenos-reset-pin",
         "sbin/paimenos-wlan-handoff"
       ]
     },
@@ -232,6 +236,7 @@
         "systemd/system/paimenos-app-update.timer",
         "systemd/system/paimenos-bluetooth.service",
         "systemd/system/paimenos-emulators.service",
+        "systemd/system/paimenos-guard.service",
         "systemd/system/paimenos-packages.service",
         "systemd/system/paimenos-parent-web.service",
         "systemd/system/paimenos-power.service",

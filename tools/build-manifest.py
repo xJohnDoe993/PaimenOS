@@ -5,13 +5,13 @@ import json
 
 ROOT = Path(__file__).resolve().parents[1]
 groups = {
-    'shared': ['__init__', 'i18n', 'paths', 'state', 'theme', 'diagnostics', 'images', 'media_files', 'categories', 'fullscreen', 'webapp', 'osd_state', 'hardware_profile', 'pronunciation', 'printing'],
+    'shared': ['__init__', 'i18n', 'paths', 'state', 'theme', 'diagnostics', 'images', 'media_files', 'categories', 'fullscreen', 'webapp', 'osd_state', 'hardware_profile', 'pronunciation', 'printing', 'guard_store', 'guard_client'],
     'desktop': ['menu', 'menu_tiles', 'menu_camera', 'menu_support', 'speech', 'video', 'status_overlay', 'close_overlay', 'browser', 'lockscreen', 'timer', 'media', 'screen_guard', 'foreground', 'idle', 'power'],
     'controller': ['controller', 'controller_profiles', 'input_devices'],
     'network': ['wifi', 'bluetooth', 'network_status'],
     'emulators': ['backups', 'emulators', 'emulator_video', 'emulator_session', 'savestates', 'emulator_install', 'emulator_catalog', 'emulator_service', 'flatpak_service', 'offline_complete', 'system_config', 'settings_backup'],
     'backend': ['parent', 'parent_web', 'flatpak_store'],
-    'updates': ['updates', 'release_source', 'update_service'],
+    'updates': ['updates', 'release_source', 'update_service', 'guard'],
     'cli': ['cli_osd_notify', 'cli_update_apps', 'cli_flatpak', 'cli_flatpak_menu', 'cli_emulator', 'cli_emulator_check'],
     'tools': [], 'services': [], 'system-config': [],
 }

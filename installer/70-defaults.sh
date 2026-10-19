@@ -6,8 +6,9 @@ echo "$(paimenos_text 'Kinder-Webapps & Einstellungen konfigurieren ...')"
 
 WEBAPP_ENTRIES=$( /usr/bin/python3 "${REPO_DIR}/tools/default-webapps.py" )
 
-if [[ ! -f "${SETTINGS_JSON}" ]]; then
-    /usr/bin/python3 "${REPO_DIR}/tools/initialize-settings.py" "${SETTINGS_JSON}" "$PAIMENOS_PARENT_PIN"
+# PIN und Einschränkungen liegen root-eigen im Guard-Speicher, nicht mehr in einer Datei von kids.
+if [[ ! -e /var/lib/paimenos/guard.enabled && ! -f "${SETTINGS_JSON}" ]]; then
+    /usr/bin/python3 "${REPO_DIR}/tools/initialize-settings.py" "$PAIMENOS_PARENT_PIN"
 fi
 
 # App-Liste für das Dashboard erstellen.

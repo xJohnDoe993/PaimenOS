@@ -21,7 +21,7 @@ Aussprache). **Nicht** enthalten sind die Eltern-PIN, Bonuszeit, verbrauchte Zei
 auf dem Zielgerät, wie sie ist. Auch Webapp-Symbole, Browserprofile (Anmeldungen) und Apps mit Startbefehl werden nicht
 gesichert, weil deren Startbefehl als Kind läuft.
 
-Beim Wiederherstellen wird der gesamte Inhalt zuerst geprüft (Prüfsumme, Format, nur `http`/`https`-Adressen, gültige
+Mit dem [Guard](guard.md) setzt die Wiederherstellung die Einstellungen über einen eigenen, auf „Einstellungen setzen“ beschränkten Token (sechs Stunden gültig), den die Weboberfläche beim Start erzeugt. Beim Wiederherstellen wird der gesamte Inhalt zuerst geprüft (Prüfsumme, Format, nur `http`/`https`-Adressen, gültige
 Werte). Schlägt etwas fehl, bleibt das Gerät unverändert. Webapps mit bekannter ID werden aktualisiert, neue werden
 angelegt; trägt eine ID ein anderes Programm, wird sie übersprungen. Gesperrte Apps werden nur übernommen, wenn es sie auf
 dem Gerät gibt.

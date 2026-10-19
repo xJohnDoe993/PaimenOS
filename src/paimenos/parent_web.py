@@ -24,7 +24,9 @@ from paimenos.emulator_install import install_request, InstallError
 import paimenos.flatpak_store as flatpak_store
 import paimenos.controller_profiles as controllers
 from paimenos.pronunciation import default_pronunciation
-from paimenos.state import read_settings
+from paimenos.state import read_settings, guard_installed
+import paimenos.guard_client as guard_client
+from paimenos.guard_store import GuardError
 from paimenos.diagnostics import collect_diagnostics, diagnostics_text
 from paimenos.bluetooth import bluetooth_request, BluetoothError
 from paimenos.wifi import wifi_request, WifiError
@@ -60,9 +62,68 @@ def pin_fingerprint():
     return hmac.new(app.secret_key.encode(), read_settings()['pin'].encode(), 'sha256').hexdigest()
 
 
+# Mit Guard: Der Token für Änderungen bleibt im Arbeitsspeicher dieses Prozesses, nie im Cookie. Das Cookie enthält
+# nur eine Sitzungs-ID. Ein gefälschtes Cookie (der Sitzungsschlüssel liegt im Home von kids) ergibt daher keinen Token.
+guard_sessions = {}
+guard_sessions_lock = threading.Lock()
+MAX_GUARD_SESSIONS = 32
+
+
+def guard_token():
+    if not guard_installed() or not session.get('parent_authenticated'):
+        return None
+    with guard_sessions_lock:
+        return guard_sessions.get(session.get('sid'))
+
+
+def guard_login(pin):
+    result = guard_client.login(pin)
+    sid = secrets.token_hex(16)
+    with guard_sessions_lock:
+        while len(guard_sessions) >= MAX_GUARD_SESSIONS:
+            guard_sessions.pop(next(iter(guard_sessions)))
+        guard_sessions[sid] = result['token']
+    return sid
+
+
+def guard_logout():
+    with guard_sessions_lock:
+        token = guard_sessions.pop(session.get('sid'), None)
+    if token:
+        guard_client.logout(token)
+
+
 def logged_in():
-    return bool(session.get('parent_authenticated')) and hmac.compare_digest(
-        session.get('pin_fingerprint', ''), pin_fingerprint())
+    if not session.get('parent_authenticated'):
+        return False
+    if not guard_installed():
+        return hmac.compare_digest(session.get('pin_fingerprint', ''), pin_fingerprint())
+    token = guard_token()
+    if not token:
+        return False
+    try:
+        return guard_client.whoami(token)[0]
+    except (GuardError, guard_client.GuardUnavailable):
+        return False
+
+
+@app.before_request
+def bind_guard_token():
+    guard_client._local.token = guard_token()
+
+
+@app.teardown_request
+def release_guard_token(error=None):
+    guard_client._local.token = None
+
+
+@app.errorhandler(GuardError)
+def guard_refused(error):
+    if error.code == 'auth':
+        session.clear()
+        return redirect(url_for('login'))
+    app.logger.error(t('Elternverwaltung: %s'), error)
+    return render_template_string(BASE, body=render_template_string(_template('data-error.html')), title=t('Datenfehler'), authenticated=False), 503
 
 
 def login_required(fn):
@@ -152,8 +213,25 @@ def login():
     parsed = parents.urllib.parse.urlsplit(next_url)
     if parsed.netloc or parsed.scheme or not next_url.startswith('/') or next_url.startswith('//') or '\\' in next_url or re.search(r'[\x00-\x20]', next_url):
         next_url = url_for('dashboard')
-    status = 200
-    if request.method == 'POST':
+    status, retry = 200, 60
+    if request.method == 'POST' and guard_installed():
+        # Der Guard zählt Fehlversuche für alle Wege zusammen (Web, Sperrbildschirm) und sperrt mit steigender Wartezeit.
+        try:
+            sid = guard_login(request.form.get('pin', ''))
+        except GuardError as exc:
+            flash(str(exc), 'error')
+            if exc.code == 'locked' or exc.wait:
+                status = 429
+                retry = max(1, exc.wait)
+        except guard_client.GuardUnavailable:
+            flash(t('Der PaimenOS-Guard ist nicht erreichbar. Bitte später erneut versuchen.'), 'error')
+            status = 503
+        else:
+            session.clear()
+            session.update(parent_authenticated=True, sid=sid)
+            session.permanent = True
+            return redirect(next_url)
+    elif request.method == 'POST':
         address, now = request.remote_addr or 'local', time.monotonic()
         with attempts_lock:
             for key in list(attempts):
@@ -178,12 +256,13 @@ def login():
     body = render_template_string(_template('login.html'), next_url=next_url)
     response = app.make_response((render(body, t('Anmeldung')), status))
     if status == 429:
-        response.headers['Retry-After'] = '60'
+        response.headers['Retry-After'] = str(retry)
     return response
 
 
 @app.route('/logout', methods=['POST'])
 def logout():
+    guard_logout()
     session.clear()
     return redirect(url_for('login'))
 
@@ -576,7 +655,8 @@ def settings_page():
         except ValueError as exc:
             flash(str(exc), 'error')
         else:
-            session['pin_fingerprint'] = pin_fingerprint()
+            if not guard_installed():
+                session['pin_fingerprint'] = pin_fingerprint()
             flash(t('Einstellungen gespeichert. Andere Web-Sitzungen müssen sich nach einer PIN-Änderung neu anmelden.'))
             return redirect(url_for('settings_page'))
     body = render_template_string(_template('settings.html'), st=st)
@@ -772,8 +852,10 @@ def backups_page():
             action = request.form.get('action', '')
             if action == 'restore' and request.form.get('confirm') != 'yes':
                 raise ValueError(t('Bitte das Ersetzen vorhandener Dateien bestätigen.'))
+            # Die Wiederherstellung läuft lange: eigener, auf Einstellungen beschränkter Token statt der Sitzung.
+            token = guard_client.delegate(guard_token()) if guard_installed() else None
             backups.start(action, request.form.get('device', ''), request.form.getlist('groups'),
-                          request.form.get('backup', ''))
+                          request.form.get('backup', ''), token)
             flash(t('Backup-Vorgang gestartet.'))
         except (ValueError, OSError) as exc:
             flash(str(exc), 'error')

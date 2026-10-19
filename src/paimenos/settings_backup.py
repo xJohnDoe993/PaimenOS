@@ -113,5 +113,5 @@ def apply(plan):
     parent.atomic_json(parent.APPS_FILE, items)
     known = {item.get('id') for item in items}
     patch = dict(plan['settings'], disabled_apps=[i for i in plan['disabled'] if i in known and i != 'poweroff'])
-    state.update_settings(patch)
+    state.run_op('set_many', legacy=lambda: state.update_settings(patch), patch=patch)
     return restored, skipped

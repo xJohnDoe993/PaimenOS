@@ -126,8 +126,14 @@ def ensure_release(release, progress=print, run=subprocess.run,
 def start_speech_install(release, settings=Path('/home/kids/.config/paimenos/settings.json'), run=subprocess.run):
     """Piper auf Bestandsgeräten nachholen: nur wenn die Sprachausgabe an ist und Piper fehlt (Updates liefern nur Debian-Pakete)."""
     try:
-        enabled = json.loads(settings.read_text(encoding='utf-8')).get('speak_titles') is True
-    except (OSError, ValueError, AttributeError):
+        # Als root direkt am Guard-Speicher; ohne Guard (ältere Installation) aus der Datei von kids.
+        _sys.path.insert(0, str(release / ('app' if (release / 'app').is_dir() else 'src')))
+        from paimenos import state
+        if state.guard_installed():
+            enabled = state.read_settings().get('speak_titles') is True
+        else:
+            enabled = json.loads(settings.read_text(encoding='utf-8')).get('speak_titles') is True
+    except (OSError, ValueError, AttributeError, ImportError):
         return False
     script = release / 'tools/install-paimenos-speech.py'
     if not enabled or not script.is_file():

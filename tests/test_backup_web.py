@@ -42,7 +42,7 @@ class BackupWebTests(unittest.TestCase):
             self.client.post('/backups', data={'csrf_token':'csrf','action':'restore','groups':'saves'})
             start.assert_not_called()
             self.client.post('/backups', data={'csrf_token':'csrf','action':'restore','groups':'saves','confirm':'yes','device':'usb','backup':'backup-id'})
-            start.assert_called_once_with('restore', 'usb', ['saves'], 'backup-id')
+            start.assert_called_once_with('restore', 'usb', ['saves'], 'backup-id', None)
 
     def test_page_exposes_selection_and_escapes_device_label(self):
         self.auth()

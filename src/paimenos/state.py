@@ -80,54 +80,109 @@ def atomic_json(path, data):
             os.unlink(tmp)
 
 
+def normalize(saved, change=None, with_pin=True):
+    """Gespeicherte Werte prüfen, Tageswechsel anwenden und eine Änderung einarbeiten.
+
+    Gibt (Daten, geändert) zurück. Beschädigte Werte lösen ValueError aus statt still ersetzt zu werden.
+    Ohne with_pin (Guard-Speicher) gehört die PIN nicht zu den Einstellungen.
+    """
+    data = dict(DEFAULTS)
+    data.update(saved)
+    before = json.dumps(data, sort_keys=True)
+    for key in ("daily_limit_minutes", "bonus_minutes", "today_used_seconds"):
+        value = saved.get(key)
+        # Zero means unlimited. Never turn corrupt/missing limits or usage
+        # into zero, truncate fractions, or accept bool as an integer.
+        if isinstance(value, str) and value.isascii() and value.isdigit():
+            value = int(value)
+        if type(value) is not int or value < 0:
+            raise ValueError(t('Ungültiger Bildschirmzeit-Wert: ') + key)
+        data[key] = value
+    # Auch ein beschädigter Nutzungszeitraum wird nicht still ersetzt.
+    usage_window(data)
+    if not isinstance(data["disabled_apps"], list):
+        data["disabled_apps"] = []
+    if with_pin:
+        data["pin"] = str(data["pin"])
+        if not data["pin"].isascii() or not data["pin"].isdigit() or not 4 <= len(data["pin"]) <= 12:
+            raise ValueError(t('Die gespeicherte Eltern-PIN ist ungültig.'))
+    else:
+        data.pop("pin", None)
+    if not isinstance(data.get("bg_color"), str):
+        data["bg_color"] = DEFAULTS["bg_color"]
+    today = str(date.today())
+    if data["last_used_date"] != today:
+        data.update(last_used_date=today, today_used_seconds=0, bonus_minutes=0)
+    if callable(change):
+        change(data)
+    elif change is not None:
+        data.update(change)
+    return data, change is not None or json.dumps(data, sort_keys=True) != before
+
+
 def update_settings(change=None):
     """Änderungen lesen und schreiben, ohne parallele Änderungen zu verlieren."""
+    if guard_installed():
+        return guard_update(change)
     os.makedirs(os.path.dirname(SETTINGS_FILE), exist_ok=True)
     with open(SETTINGS_FILE + ".lock", "a", encoding="utf-8") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
-        data = dict(DEFAULTS)
         try:
             with open(SETTINGS_FILE, encoding="utf-8") as handle:
                 saved = json.load(handle)
             if not isinstance(saved, dict):
                 raise ValueError(t('Die Einstellungen müssen ein JSON-Objekt sein.'))
-            data.update(saved)
         except FileNotFoundError as exc:
             raise ValueError(t('Eltern-Einstellungen fehlen. Installation abschließen oder Sicherung wiederherstellen.')) from exc
         # Beschädigte Dateien nicht still durch Standardwerte überschreiben.
-        before = json.dumps(data, sort_keys=True)
-        for key in ("daily_limit_minutes", "bonus_minutes", "today_used_seconds"):
-            value = saved.get(key)
-            # Zero means unlimited. Never turn corrupt/missing limits or usage
-            # into zero, truncate fractions, or accept bool as an integer.
-            if isinstance(value, str) and value.isascii() and value.isdigit():
-                value = int(value)
-            if type(value) is not int or value < 0:
-                raise ValueError(t('Ungültiger Bildschirmzeit-Wert: ') + key)
-            data[key] = value
-        # Auch ein beschädigter Nutzungszeitraum wird nicht still ersetzt.
-        usage_window(data)
-        if not isinstance(data["disabled_apps"], list):
-            data["disabled_apps"] = []
-        data["pin"] = str(data["pin"])
-        if not data["pin"].isascii() or not data["pin"].isdigit() or not 4 <= len(data["pin"]) <= 12:
-            raise ValueError(t('Die gespeicherte Eltern-PIN ist ungültig.'))
-        if not isinstance(data.get("bg_color"), str):
-            data["bg_color"] = DEFAULTS["bg_color"]
-        today = str(date.today())
-        if data["last_used_date"] != today:
-            data.update(last_used_date=today, today_used_seconds=0, bonus_minutes=0)
-        if callable(change):
-            change(data)
-        elif change is not None:
-            data.update(change)
-        if change is not None or json.dumps(data, sort_keys=True) != before:
+        data, changed = normalize(saved, change)
+        if changed:
             atomic_json(SETTINGS_FILE, data)
         return data
 
 
 def read_settings():
+    if guard_installed():
+        return run_op('public')
     return update_settings()
+
+
+# --- Guard: PIN und Einschränkungen liegen root-eigen unter /var/lib/paimenos/guard -------------------------------
+GUARD_DIR = "/var/lib/paimenos/guard"
+# Für alle lesbar, aber nur root kann sie anlegen. Der Guard erstellt sie erst, wenn der Speicher bereit ist.
+GUARD_MARKER = "/var/lib/paimenos/guard.enabled"
+
+
+def guard_installed():
+    """Sobald der Guard eingerichtet ist, lesen und ändern Kinderprozesse nie mehr die Datei im Home."""
+    return os.path.exists(GUARD_MARKER)
+
+
+def run_op(op, legacy=None, **args):
+    """Benannte Operation beim Guard ausführen (root direkt am Speicher, alle anderen über den Socket).
+
+    Ohne Guard (Altgeräte, Entwicklung, Tests) läuft legacy() auf der Einstellungsdatei.
+    """
+    if not guard_installed():
+        if legacy is None:
+            raise ValueError(t('Diese Funktion benötigt den PaimenOS-Guard.'))
+        return legacy()
+    if os.geteuid() == 0:
+        from paimenos import guard_store
+        return guard_store.GuardStore().call(op, args, authenticated=True)
+    from paimenos import guard_client
+    return guard_client.call(op, **args)
+
+
+def guard_update(change):
+    if change is None:
+        return run_op('public')
+    if isinstance(change, dict) and set(change) == {"bg_color"}:
+        return run_op('set_color', bg_color=change["bg_color"])
+    if os.geteuid() == 0:
+        from paimenos import guard_store
+        return guard_store.GuardStore().apply(change)
+    raise PermissionError(t('Die Einstellungen werden vom Guard verwaltet und sind nur mit der Eltern-PIN änderbar.'))
 
 
 def remaining_seconds(data, now=None):

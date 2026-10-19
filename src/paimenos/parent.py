@@ -17,7 +17,7 @@ import subprocess
 from contextlib import contextmanager
 from paimenos.categories import app_category
 from paimenos import state as state_module
-from paimenos.state import atomic_json, read_settings, update_settings, remaining_seconds, in_usage_window, app_with_current_title
+from paimenos.state import atomic_json, read_settings, update_settings, run_op, remaining_seconds, in_usage_window, app_with_current_title
 
 APPS_FILE = str(CONFIG_DIR / "apps.json")
 ICONS_DIR = os.path.expanduser('~/.local/share/paimenos/icons')
@@ -84,7 +84,7 @@ def set_apps_active(ids, active):
             else:
                 disabled.update(ids)
             data['disabled_apps'] = sorted(disabled)
-        update_settings(update)
+        run_op('apps_active', legacy=lambda: update_settings(update), ids=sorted(set(ids)), active=bool(active))
 
 
 def toggle_app(app_id):
@@ -97,13 +97,14 @@ def toggle_app(app_id):
         if item.get('enabled') is False:
             item['enabled'] = True
             atomic_json(APPS_FILE, items)
-            update_settings(lambda st: st.update(disabled_apps=[i for i in st['disabled_apps'] if i != app_id]))
+            run_op('apps_active', legacy=lambda: update_settings(lambda st: st.update(
+                disabled_apps=[i for i in st['disabled_apps'] if i != app_id])), ids=[app_id], active=True)
         else:
             def toggle(st):
                 disabled = set(st['disabled_apps'])
                 disabled.symmetric_difference_update({app_id})
                 st['disabled_apps'] = sorted(disabled)
-            update_settings(toggle)
+            run_op('toggle_app', legacy=lambda: update_settings(toggle), id=app_id)
 
 
 def minute_value(value):
@@ -117,13 +118,15 @@ def minute_value(value):
 
 
 def set_time(limit):
-    return update_settings({'daily_limit_minutes': minute_value(limit)})
+    minutes = minute_value(limit)
+    return run_op('set_limit', legacy=lambda: update_settings({'daily_limit_minutes': minutes}), minutes=minutes)
 
 
 def set_window(start, end):
     start, end = (start or '').strip(), (end or '').strip()
     if not start and not end:
-        return update_settings({'allowed_from': '', 'allowed_until': '', 'window_override_date': ''})
+        return run_op('set_window', legacy=lambda: update_settings(
+            {'allowed_from': '', 'allowed_until': '', 'window_override_date': ''}), start='', end='')
     if not start or not end:
         raise ValueError(t('Bitte Beginn und Ende des Nutzungszeitraums angeben oder beide leeren.'))
     if start == end:
@@ -132,7 +135,8 @@ def set_window(start, end):
         state_module.clock_minutes(start), state_module.clock_minutes(end)
     except ValueError:
         raise ValueError(t('Bitte Uhrzeiten im Format HH:MM eingeben.')) from None
-    return update_settings({'allowed_from': start, 'allowed_until': end, 'window_override_date': ''})
+    return run_op('set_window', legacy=lambda: update_settings(
+        {'allowed_from': start, 'allowed_until': end, 'window_override_date': ''}), start=start, end=end)
 
 
 def add_bonus(value):
@@ -144,16 +148,16 @@ def add_bonus(value):
         before = st['bonus_minutes']
         st['bonus_minutes'] = min(600, before + minutes)
         result[0] = st['bonus_minutes'] - before
-    update_settings(add)
-    return result[0]
+    answer = run_op('add_bonus', legacy=lambda: update_settings(add), minutes=minutes)
+    return answer['added'] if isinstance(answer, dict) and 'added' in answer else result[0]
 
 
 def clear_bonus():
-    update_settings({'bonus_minutes': 0})
+    run_op('clear_bonus', legacy=lambda: update_settings({'bonus_minutes': 0}))
 
 
 def reset_today():
-    update_settings({'today_used_seconds': 0, 'bonus_minutes': 0})
+    run_op('reset_today', legacy=lambda: update_settings({'today_used_seconds': 0, 'bonus_minutes': 0}))
 
 
 def usage(data=None):
@@ -195,7 +199,10 @@ def save_preferences(pin, confirmation, color, category_tabs=None, speak_titles=
             raise ValueError(t('Ungültige Stimme.'))
         patch['speak_voice'] = speak_voice
     patch['bg_color'] = color.upper()
-    return update_settings(patch)
+    guard_args = {key: value for key, value in patch.items() if key != 'pin'}
+    guard_args['new_pin'] = patch.get('pin')
+    run_op('save_preferences', legacy=lambda: update_settings(patch), **guard_args)
+    return read_settings()
 
 
 def editable_app(item):
@@ -353,7 +360,8 @@ def delete_app(app_id):
         if item is None:
             raise ValueError(t('Diese App existiert nicht mehr oder kann nur gesperrt werden.'))
         atomic_json(APPS_FILE, [a for a in items if a.get('id') != app_id])
-        update_settings(lambda st: st.update(disabled_apps=[i for i in st['disabled_apps'] if i != app_id]))
+        run_op('apps_active', legacy=lambda: update_settings(lambda st: st.update(
+            disabled_apps=[i for i in st['disabled_apps'] if i != app_id])), ids=[app_id], active=True)
         # Spiel-Dateien entfernen; Spielstände bleiben erhalten.
         if item.get('emulator') and re.fullmatch(r'rom-[0-9a-f]{24}', app_id):
             shutil.rmtree(os.path.expanduser('~/.local/share/paimenos/emulators/roms/') + app_id, ignore_errors=True)
